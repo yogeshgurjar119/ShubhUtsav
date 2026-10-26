@@ -12,7 +12,7 @@ Four kinds of AI and data are used:
 - **Public calendar feed** (Google public India holiday calendar, no key): festivals and holidays near your date.
 - **Explore events** (header button): **Calendarific** for festivals and holidays (India by default, 16 countries) and **Ticketmaster Discovery** for live concerts, sports and shows worldwide. Any result can become "Plan an event on this date".
 
-Built for the *Celebration & Event Planner* challenge. AI is provided by an **NVIDIA-hosted model** through the
+Built for the _Celebration & Event Planner_ challenge. AI is provided by an **NVIDIA-hosted model** through the
 OpenAI-compatible API on [build.nvidia.com](https://build.nvidia.com).
 
 ## Chosen vertical
@@ -35,10 +35,10 @@ The logo is animated (a flickering diya inside a slowly turning petal ring) and 
 
 The compass button in the header opens a page with two sources:
 
-| Tab | Source | Notes |
-| --- | --- | --- |
-| Festivals & holidays | Calendarific | Country, year and month. A whole year is fetched once per country and cached for a day (the free plan allows about 500 calls a month). |
-| Live events | Ticketmaster Discovery | Country, city, keyword, category and a date range of up to 120 days. Cached for 10 minutes per search. Ticketmaster has limited listings in India, and the page says so. |
+| Tab                  | Source                 | Notes                                                                                                                                                                    |
+| -------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Festivals & holidays | Calendarific           | Country, year and month. A whole year is fetched once per country and cached for a day (the free plan allows about 500 calls a month).                                   |
+| Live events          | Ticketmaster Discovery | Country, city, keyword, category and a date range of up to 120 days. Cached for 10 minutes per search. Ticketmaster has limited listings in India, and the page says so. |
 
 Both keys stay on the server. Each feature switches off cleanly (with a clear message) if its key is missing, and a provider failure shows a friendly error instead of breaking the page.
 
@@ -46,19 +46,19 @@ Both keys stay on the server. Each feature switches off cleanly (with a clear me
 
 The key design decision is to **keep the numbers deterministic and let the AI do the creative part**.
 
-| Concern | Who does it | Why |
-| --- | --- | --- |
-| Budget split, feasibility, timeline, checklist | Plain, tested code (`server/domain`) | Money and dates must be correct, repeatable and explainable. No hallucinated totals. |
-| Themes, menu, entertainment, saving tips, chat | NVIDIA text model (`server/services`) | Open-ended, personalised suggestions. |
-| Card background art | NVIDIA image model | Visual creativity. The words are drawn in the browser, because image models draw unreliable lettering. |
-| Festival and holiday warnings | Public calendar feed, interpreted by plain code | Real dates, not model guesses. |
-| Anything the AI returns | Validated against a strict schema | A bad or hostile answer is rejected and replaced with built-in ideas. |
+| Concern                                        | Who does it                                     | Why                                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Budget split, feasibility, timeline, checklist | Plain, tested code (`server/domain`)            | Money and dates must be correct, repeatable and explainable. No hallucinated totals.                   |
+| Themes, menu, entertainment, saving tips, chat | NVIDIA text model (`server/services`)           | Open-ended, personalised suggestions.                                                                  |
+| Card background art                            | NVIDIA image model                              | Visual creativity. The words are drawn in the browser, because image models draw unreliable lettering. |
+| Festival and holiday warnings                  | Public calendar feed, interpreted by plain code | Real dates, not model guesses.                                                                         |
+| Anything the AI returns                        | Validated against a strict schema               | A bad or hostile answer is rejected and replaced with built-in ideas.                                  |
 
 ### Decisions based on your context
 
 - **Public events** get their own logic: attendance up to 50,000, no "at home" venue, a budget weighted towards entertainment, venue and logistics, and a checklist with permits, security, crowd flow, first aid, ticketing and sponsors.
 - **Budget**: a contingency reserve is taken first (7%, or 10% when the event is under 30 days away). The rest is split by event-type weights, boosted for your top priorities. A home venue removes the venue line. Amounts are whole rupees and always add up exactly to your budget (largest-remainder rounding).
-- **Feasibility**: spend per guest is compared with lean and comfortable benchmarks for the event type and city tier. The result is *comfortable*, *tight* or *too low*, with concrete advice such as a suggested guest count.
+- **Feasibility**: spend per guest is compared with lean and comfortable benchmarks for the event type and city tier. The result is _comfortable_, _tight_ or _too low_, with concrete advice such as a suggested guest count.
 - **Timeline**: a template counts back from the event date. With less lead time than ideal, every step is scaled down proportionally, steps that land on the same day merge, and nothing is dated before today.
 - **Checklist**: adapts to the venue (hall, outdoor, home), diet (vegetarian or Jain kitchen checks) and event type. Items whose ideal booking date has passed are marked "do this now".
 - **Date insights**: festivals and holidays within a week of the date become cards and advice (festival dates are in high demand; guests travel around holidays; some dates are tentative). The feed is cached for a day, treated as untrusted text, and the plan works without it.
@@ -107,30 +107,30 @@ npm start                 # http://localhost:3000
 
 Without `NVIDIA_API_KEY` the app still runs, using the built-in ideas and with the chat disabled.
 
-| Command | What it does |
-| --- | --- |
-| `npm start` | Start the server |
-| `npm run dev` | Start with auto-reload |
-| `npm test` | Run all tests |
-| `npm run lint` | Lint with ESLint |
+| Command        | What it does           |
+| -------------- | ---------------------- |
+| `npm start`    | Start the server       |
+| `npm run dev`  | Start with auto-reload |
+| `npm test`     | Run all tests          |
+| `npm run lint` | Lint with ESLint       |
 
 ### Configuration (`.env`)
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `NVIDIA_API_KEY` | none | Enables AI ideas and chat |
-| `NVIDIA_MODEL` | `nvidia/nemotron-3.5-bolt-e4b`, then `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Your preferred model id(s), comma-separated. The defaults are always appended as a fallback, so a retired model (HTTP 404/410) does not switch the AI off. Which models work depends on your NVIDIA account, so test one in the build.nvidia.com playground first. |
-| `NVIDIA_IMAGE_MODEL` | `black-forest-labs/flux.2-klein-4b`, then `black-forest-labs/flux.1-dev` | Image model id(s), comma-separated. If one is retired, hangs or errors, the next is tried. |
-| `NVIDIA_IMAGE_API_KEY` | falls back to `NVIDIA_API_KEY` | Separate key for images, if you have one |
-| `CALENDARIFIC_API_KEY` | none | Enables the festivals list in Explore ([calendarific.com](https://calendarific.com)) |
-| `TICKETMASTER_API_KEY` | none | Enables live event search in Explore ([developer.ticketmaster.com](https://developer.ticketmaster.com)) |
-| `HOLIDAY_FEED_URL` | Google public India holidays | iCalendar feed; set empty to disable |
-| `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | API endpoint |
-| `LLM_TIMEOUT_MS` | `20000` | Per-request AI timeout |
-| `PORT` | `3000` | HTTP port |
-| `APP_TIMEZONE` | `Asia/Kolkata` | Decides what "today" is for countdowns |
-| `TRUST_PROXY` | `0` | Set to `1` behind one proxy (Render, Heroku) so rate limits see real IPs |
-| `RATE_LIMIT_PER_MIN` / `RATE_LIMIT_AI_PER_MIN` / `RATE_LIMIT_IMAGE_PER_MIN` / `RATE_LIMIT_EXPLORE_PER_MIN` | `120` / `20` / `5` / `30` | Per-IP request limits (images are the most expensive) |
+| Variable                                                                                                   | Default                                                                              | Purpose                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NVIDIA_API_KEY`                                                                                           | none                                                                                 | Enables AI ideas and chat                                                                                                                                                                                                                                          |
+| `NVIDIA_MODEL`                                                                                             | `nvidia/nemotron-3.5-bolt-e4b`, then `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Your preferred model id(s), comma-separated. The defaults are always appended as a fallback, so a retired model (HTTP 404/410) does not switch the AI off. Which models work depends on your NVIDIA account, so test one in the build.nvidia.com playground first. |
+| `NVIDIA_IMAGE_MODEL`                                                                                       | `black-forest-labs/flux.2-klein-4b`, then `black-forest-labs/flux.1-dev`             | Image model id(s), comma-separated. If one is retired, hangs or errors, the next is tried.                                                                                                                                                                         |
+| `NVIDIA_IMAGE_API_KEY`                                                                                     | falls back to `NVIDIA_API_KEY`                                                       | Separate key for images, if you have one                                                                                                                                                                                                                           |
+| `CALENDARIFIC_API_KEY`                                                                                     | none                                                                                 | Enables the festivals list in Explore ([calendarific.com](https://calendarific.com))                                                                                                                                                                               |
+| `TICKETMASTER_API_KEY`                                                                                     | none                                                                                 | Enables live event search in Explore ([developer.ticketmaster.com](https://developer.ticketmaster.com))                                                                                                                                                            |
+| `HOLIDAY_FEED_URL`                                                                                         | Google public India holidays                                                         | iCalendar feed; set empty to disable                                                                                                                                                                                                                               |
+| `NVIDIA_BASE_URL`                                                                                          | `https://integrate.api.nvidia.com/v1`                                                | API endpoint                                                                                                                                                                                                                                                       |
+| `LLM_TIMEOUT_MS`                                                                                           | `20000`                                                                              | Per-request AI timeout                                                                                                                                                                                                                                             |
+| `PORT`                                                                                                     | `3000`                                                                               | HTTP port                                                                                                                                                                                                                                                          |
+| `APP_TIMEZONE`                                                                                             | `Asia/Kolkata`                                                                       | Decides what "today" is for countdowns                                                                                                                                                                                                                             |
+| `TRUST_PROXY`                                                                                              | `0`                                                                                  | Set to `1` behind one proxy (Render, Heroku) so rate limits see real IPs                                                                                                                                                                                           |
+| `RATE_LIMIT_PER_MIN` / `RATE_LIMIT_AI_PER_MIN` / `RATE_LIMIT_IMAGE_PER_MIN` / `RATE_LIMIT_EXPLORE_PER_MIN` | `120` / `20` / `5` / `30`                                                            | Per-IP request limits (images are the most expensive)                                                                                                                                                                                                              |
 
 ## Deploy on Vercel
 
@@ -180,7 +180,7 @@ The step flows use the WAI-ARIA tabs pattern (arrow keys, Home and End move betw
 
 - Costs are rough planning benchmarks for India in rupees, not vendor quotes. They are data in `server/domain/catalog.js` and easy to tune.
 - "Today" is calculated in `APP_TIMEZONE` (India by default). Events can be planned up to 3 years ahead.
-- Festival dates come from a public calendar and some (for example Eid) are tentative. Auspicious *muhurat* dates are not calculated; confirm them with your priest.
+- Festival dates come from a public calendar and some (for example Eid) are tentative. Auspicious _muhurat_ dates are not calculated; confirm them with your priest.
 - Only one event is planned at a time; nothing is stored on the server. Checklist ticks are saved in the browser's local storage on that device.
 - The chat is stateless on the server: the browser sends the last 12 messages with each question.
 
