@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShubhUtsav | Celebration &amp; Event Planner</title>
+    <meta
+      name="description"
+      content="Plan weddings, birthdays, community and public events with a smart budget, timeline, vendor checklist, festival dates, invitation cards and AI ideas."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%237b1e3a'/%3E%3Cpath d='M32 14c5 6 7 10 7 14a7 7 0 0 1-14 0c0-4 2-8 7-14z' fill='%23f5b942'/%3E%3Cpath d='M17 38c0 8 7 13 15 13s15-5 15-13H17z' fill='%23fff'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/js/theme-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/" aria-label="ShubhUtsav home">
+          <svg class="logo" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true" focusable="false">
+            <g class="logo-petals">
+              <ellipse cx="32" cy="9" rx="4" ry="8" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(45 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(90 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(135 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(180 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(225 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(270 32 32)" />
+              <ellipse cx="32" cy="9" rx="4" ry="8" transform="rotate(315 32 32)" />
+            </g>
+            <circle class="logo-disc" cx="32" cy="32" r="19" />
+            <path class="logo-bowl" d="M18 36c0 8 6.3 13 14 13s14-5 14-13H18z" />
+            <path class="logo-flame" d="M32 15c4.5 5.5 6.5 9 6.5 12.5a6.5 6.5 0 0 1-13 0c0-3.5 2-7 6.5-12.5z" />
+            <path class="logo-flame-core" d="M32 23c2 2.6 3 4.4 3 6a3 3 0 0 1-6 0c0-1.600 1-3.400 3-6z" />
+            <circle class="logo-spark spark-1" cx="49" cy="14" r="1.6" />
+            <circle class="logo-spark spark-2" cx="14" cy="18" r="1.3" />
+            <circle class="logo-spark spark-3" cx="51" cy="42" r="1.2" />
+          </svg>
+          <span class="brand-text">
+            <span class="brand-name">ShubhUtsav <span lang="hi" class="brand-hi">शुभ उत्सव</span></span>
+            <span class="brand-tag">Celebration &amp; event planner</span>
+          </span>
+        </a>
+        <nav class="header-nav" aria-label="Main">
+          <button type="button" class="nav-btn" id="nav-plan" aria-current="page"><span data-icon="layout"></span><span class="nav-text">Plan</span></button>
+          <button type="button" class="nav-btn" id="nav-explore"><span data-icon="compass"></span><span class="nav-text">Explore events</span></button>
+          <button type="button" class="nav-btn nav-icon" id="theme-btn"></button>
+          <button type="button" class="button button-ghost" id="restart-btn" hidden><span data-icon="refresh"></span><span class="nav-text">New plan</span></button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container" id="main" tabindex="-1">
+      <!-- ============ Step-by-step setup ============ -->
+      <section id="view-plan" aria-labelledby="hero-heading">
+        <div class="hero">
+          <p class="eyebrow">Smart planning for every celebration</p>
+          <h1 id="hero-heading">Plan it like a professional event manager</h1>
+          <p class="hero-copy">
+            Answer three short steps. You get a budget that adds up, a dated timeline, a vendor checklist, festival
+            warnings for your date, an invitation card and AI ideas.
+          </p>
+          <ul class="feature-pills" aria-label="What you get">
+            <li><span data-icon="pie"></span> Budget split</li>
+            <li><span data-icon="calendar"></span> Timeline</li>
+            <li><span data-icon="checklist"></span> Vendor checklist</li>
+            <li><span data-icon="sparkles"></span> AI ideas</li>
+            <li><span data-icon="image"></span> Invitation card</li>
+          </ul>
+        </div>
+
+        <div class="panel wizard">
+          <h2 id="wizard-title" tabindex="-1" class="visually-hidden">Plan your event</h2>
+          <ol class="stepper" id="form-stepper" aria-label="Setup steps">
+            <li data-step="1"><span class="step-dot">1</span><span class="step-label">Event</span></li>
+            <li data-step="2"><span class="step-dot">2</span><span class="step-label">Scale &amp; budget</span></li>
+            <li data-step="3"><span class="step-dot">3</span><span class="step-label">Preferences</span></li>
+          </ol>
+
+          <form id="plan-form" novalidate>
+            <div id="form-error" class="alert" role="alert" hidden></div>
+
+            <!-- Step 1 -->
+            <div class="form-step" data-step="1">
+              <h3 class="step-title">What are you celebrating?</h3>
+              <fieldset class="type-cards">
+                <legend class="visually-hidden">Event type</legend>
+                <label class="type-card">
+                  <input type="radio" name="eventType" value="wedding" checked />
+                  <span class="type-body"><span class="type-icon" data-icon="heart" data-icon-size="26"></span><strong>Wedding</strong><small>Weddings, receptions, engagements</small></span>
+                </label>
+                <label class="type-card">
+                  <input type="radio" name="eventType" value="birthday" />
+                  <span class="type-body"><span class="type-icon" data-icon="cake" data-icon-size="26"></span><strong>Birthday</strong><small>Birthdays and anniversaries</small></span>
+                </label>
+                <label class="type-card">
+                  <input type="radio" name="eventType" value="community" />
+                  <span class="type-body"><span class="type-icon" data-icon="users" data-icon-size="26"></span><strong>Community</strong><small>Society, temple or club gatherings</small></span>
+                </label>
+                <label class="type-card">
+                  <input type="radio" name="eventType" value="public" />
+                  <span class="type-body"><span class="type-icon" data-icon="megaphone" data-icon-size="26"></span><strong>Public event</strong><small>Fairs, concerts, expos, festivals</small></span>
+                </label>
+              </fieldset>
+
+              <div class="field narrow">
+                <label for="eventDate">Event date</label>
+                <input id="eventDate" name="eventDate" type="date" required aria-describedby="eventDate-error" />
+                <p class="field-error" id="eventDate-error" hidden></p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="form-step" data-step="2" hidden>
+              <h3 class="step-title">How big, and what is the budget?</h3>
+              <div class="grid">
+                <div class="field">
+                  <label for="guests"><span id="guests-label">Number of guests</span></label>
+                  <input id="guests" name="guests" type="number" inputmode="numeric" min="2" max="5000" step="1" value="200" required aria-describedby="guests-hint guests-error" />
+                  <p class="hint" id="guests-hint">Expected attendance.</p>
+                  <p class="field-error" id="guests-error" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="budget">Total budget (₹)</label>
+                  <input id="budget" name="budget" type="number" inputmode="numeric" min="5000" max="100000000" step="1000" value="1200000" required aria-describedby="budget-hint budget-error" />
+                  <p class="hint" id="budget-hint" aria-live="polite"></p>
+                  <p class="field-error" id="budget-error" hidden></p>
+                </div>
+                <div class="field">
+                  <label for="cityTier">City type</label>
+                  <select id="cityTier" name="cityTier">
+                    <option value="metro">Metro (Mumbai, Delhi, Bengaluru…)</option>
+                    <option value="tier2" selected>Tier 2 city (Indore, Jaipur, Pune…)</option>
+                    <option value="tier3">Town or smaller city</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="venueType">Venue</label>
+                  <select id="venueType" name="venueType" aria-describedby="venueType-error">
+                    <option value="hall" selected>Banquet hall or hotel</option>
+                    <option value="outdoor">Lawn or outdoor ground</option>
+                    <option value="home">At home</option>
+                  </select>
+                  <p class="field-error" id="venueType-error" hidden></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="form-step" data-step="3" hidden>
+              <h3 class="step-title">What matters to you?</h3>
+              <div class="field narrow">
+                <label for="dietary">Food preference</label>
+                <select id="dietary" name="dietary">
+                  <option value="mixed" selected>Vegetarian and non-vegetarian</option>
+                  <option value="veg">Vegetarian only</option>
+                  <option value="jain">Jain</option>
+                </select>
+              </div>
+
+              <fieldset class="choice-group">
+                <legend>Top priorities <span class="hint">(pick up to 3, optional)</span></legend>
+                <div class="choices" id="priorities">
+                  <label class="choice"><input type="checkbox" name="priorities" value="venue" /><span><span data-icon="building" data-icon-size="18"></span>Venue</span></label>
+                  <label class="choice"><input type="checkbox" name="priorities" value="catering" /><span><span data-icon="utensils" data-icon-size="18"></span>Food</span></label>
+                  <label class="choice"><input type="checkbox" name="priorities" value="decor" /><span><span data-icon="sparkles" data-icon-size="18"></span>Decor</span></label>
+                  <label class="choice"><input type="checkbox" name="priorities" value="photography" /><span><span data-icon="camera" data-icon-size="18"></span>Photo &amp; video</span></label>
+                  <label class="choice"><input type="checkbox" name="priorities" value="entertainment" /><span><span data-icon="music" data-icon-size="18"></span>Music &amp; fun</span></label>
+                  <label class="choice"><input type="checkbox" name="priorities" value="attire" /><span><span data-icon="shirt" data-icon-size="18"></span>Attire</span></label>
+                </div>
+              </fieldset>
+
+              <div class="field">
+                <label for="notes">Anything else we should know? <span class="hint">(optional)</span></label>
+                <textarea id="notes" name="notes" rows="3" maxlength="500" aria-describedby="notes-count"></textarea>
+                <p class="hint" id="notes-count" aria-live="polite">0 / 500</p>
+              </div>
+            </div>
+
+            <div class="wizard-actions">
+              <button type="button" class="button button-secondary" id="back-btn" hidden><span data-icon="arrowLeft"></span> Back</button>
+              <span class="spacer"></span>
+              <button type="button" class="button" id="next-btn">Next <span data-icon="arrowRight"></span></button>
+              <button type="submit" class="button" id="submit-btn" hidden><span data-icon="sparkles"></span> Create my plan</button>
+            </div>
+          </form>
+        </div>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- ============ Explore: festivals (Calendarific) and live events (Ticketmaster) ============ -->
+      <section id="view-explore" aria-labelledby="explore-heading" hidden>
+        <div class="hero">
+          <p class="eyebrow">Explore</p>
+          <h2 id="explore-heading" tabindex="-1" class="hero-title">Festivals, holidays and live events</h2>
+          <p class="hero-copy">See what is happening around your date, so you can pick a day that is free, avoid clashes and plan around festivals.</p>
+        </div>
+
+        <div class="panel">
+          <div class="seg-tabs" role="tablist" aria-label="Explore sources" id="explore-tabs">
+            <button type="button" role="tab" id="xtab-festivals" aria-controls="xpanel-festivals" aria-selected="true"><span data-icon="star"></span> Festivals &amp; holidays</button>
+            <button type="button" role="tab" id="xtab-events" aria-controls="xpanel-events" aria-selected="false" tabindex="-1"><span data-icon="ticket"></span> Live events</button>
+          </div>
+
+          <div role="tabpanel" id="xpanel-festivals" aria-labelledby="xtab-festivals">
+            <form id="festival-form" class="filters" novalidate>
+              <div class="field">
+                <label for="f-country">Country</label>
+                <select id="f-country" name="country"></select>
+              </div>
+              <div class="field">
+                <label for="f-year">Year</label>
+                <select id="f-year" name="year"></select>
+              </div>
+              <div class="field">
+                <label for="f-month">Month</label>
+                <select id="f-month" name="month"></select>
+              </div>
+              <button type="submit" class="button"><span data-icon="search"></span> Show festivals</button>
+            </form>
+          </div>
+
+          <div role="tabpanel" id="xpanel-events" aria-labelledby="xtab-events" hidden>
+            <form id="events-form" class="filters" novalidate>
+              <div class="field">
+                <label for="e-country">Country</label>
+                <select id="e-country" name="country"></select>
+              </div>
+              <div class="field">
+                <label for="e-city">City <span class="hint">(optional)</span></label>
+                <input id="e-city" name="city" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Austin" />
+              </div>
+              <div class="field">
+                <label for="e-keyword">Keyword <span class="hint">(optional)</span></label>
+                <input id="e-keyword" name="keyword" type="text" maxlength="60" autocomplete="off" placeholder="e.g. festival" />
+              </div>
+              <div class="field">
+                <label for="e-category">Category</label>
+                <select id="e-category" name="category">
+                  <option value="">All</option>
+                  <option value="music">Music</option>
+                  <option value="sports">Sports</option>
+                  <option value="arts">Arts &amp; theatre</option>
+                  <option value="film">Film</option>
+                  <option value="family">Family</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="e-from">From</label>
+                <input id="e-from" name="from" type="date" />
+              </div>
+              <div class="field">
+                <label for="e-to">To</label>
+                <input id="e-to" name="to" type="date" />
+              </div>
+              <button type="submit" class="button"><span data-icon="search"></span> Find events</button>
+            </form>
+          </div>
+
+          <div id="explore-status" class="status" role="status" aria-live="polite"></div>
+          <div id="explore-results" class="explore-results"></div>
+          <p class="hint attribution">Festival and holiday data from Calendarific. Event listings from Ticketmaster, which has limited coverage in India.</p>
+        </div>
+      </section>
+
+      <!-- ============ Step-by-step workspace ============ -->
+      <section id="view-results" aria-labelledby="results-heading" hidden>
+        <div class="results-top">
+          <div>
+            <h2 id="results-heading" tabindex="-1">Your event workspace</h2>
+            <p class="hint" id="results-sub"></p>
+          </div>
+          <div class="results-actions">
+            <button type="button" class="button button-secondary" id="edit-btn"><span data-icon="edit"></span> Edit details</button>
+            <button type="button" class="button button-secondary" id="print-btn"><span data-icon="printer"></span> Print or save PDF</button>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <p class="progress-text" id="ws-progress-text" aria-live="polite"></p>
+          <div class="progress-bar" role="progressbar" aria-label="Plan progress" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1"><span id="ws-progress-fill"></span></div>
+        </div>
+
+        <div class="workspace">
+          <div class="tabs" role="tablist" aria-label="Plan steps" aria-orientation="vertical" id="ws-tabs"></div>
+
+          <div class="panels">
+            <section role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" tabindex="0" class="ws-panel" data-panel="overview">
+              <h3>Overview</h3>
+              <div id="summary" class="summary"></div>
+              <ul id="advice" class="advice"></ul>
+            </section>
+
+            <section role="tabpanel" id="panel-budget" aria-labelledby="tab-budget" tabindex="0" class="ws-panel" data-panel="budget" hidden>
+              <h3>Budget split</h3>
+              <div id="budget-view"></div>
+            </section>
+
+            <section role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" tabindex="0" class="ws-panel" data-panel="timeline" hidden>
+              <h3>Timeline</h3>
+              <div id="timeline"></div>
+            </section>
+
+            <section role="tabpanel" id="panel-checklist" aria-labelledby="tab-checklist" tabindex="0" class="ws-panel" data-panel="checklist" hidden>
+              <h3>Vendor and task checklist</h3>
+              <div class="checklist-head">
+                <div id="checklist-ring"></div>
+                <p class="hint" id="checklist-progress" aria-live="polite"></p>
+              </div>
+              <div id="checklist"></div>
+            </section>
+
+            <section role="tabpanel" id="panel-dates" aria-labelledby="tab-dates" tabindex="0" class="ws-panel" data-panel="dates" hidden>
+              <h3>Dates to know</h3>
+              <ul id="dates-advice" class="advice"></ul>
+              <ul id="dates-list" class="date-cards"></ul>
+              <p class="hint">Holidays and festivals within a week of your date, from a public Indian holiday calendar.</p>
+            </section>
+
+            <section role="tabpanel" id="panel-ideas" aria-labelledby="tab-ideas" tabindex="0" class="ws-panel" data-panel="ideas" hidden>
+              <h3>Ideas for your event</h3>
+              <div id="ideas"></div>
+            </section>
+
+            <section role="tabpanel" id="panel-card" aria-labelledby="tab-card" tabindex="0" class="ws-panel no-print" data-panel="card" hidden>
+              <h3>Invitation card</h3>
+              <p class="hint">Add your words, then let AI paint a matching background. Download it to share on WhatsApp.</p>
+              <div class="card-builder">
+                <div class="card-controls">
+                  <div class="field">
+                    <label for="card-title">Names or title</label>
+                    <input id="card-title" type="text" maxlength="60" autocomplete="off" />
+                  </div>
+                  <div class="field">
+                    <label for="card-line">Venue and time</label>
+                    <input id="card-line" type="text" maxlength="100" autocomplete="off" placeholder="e.g. Hotel Rajmahal, 7 PM onwards" />
+                  </div>
+                  <div class="field">
+                    <label for="card-theme">Art theme</label>
+                    <select id="card-theme"></select>
+                  </div>
+                  <div class="button-row">
+                    <button type="button" class="button" id="card-art-btn"><span data-icon="sparkles"></span> Create AI background</button>
+                    <button type="button" class="button button-secondary" id="card-download"><span data-icon="download"></span> Download PNG</button>
+                  </div>
+                  <p class="hint" id="card-status" role="status" aria-live="polite"></p>
+                </div>
+                <canvas id="card-canvas" width="896" height="1088" role="img" aria-label="Invitation card preview"></canvas>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="panel-assistant" aria-labelledby="tab-assistant" tabindex="0" class="ws-panel no-print" data-panel="assistant" hidden>
+              <h3>Ask the planning assistant</h3>
+              <p class="hint" id="chat-note">Ask about vendors, budgets, schedules or etiquette for this event.</p>
+              <div class="chat-shell">
+                <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Conversation" tabindex="0"></div>
+                <div id="chat-suggestions" class="chat-suggestions" aria-label="Suggested questions"></div>
+                <form id="chat-form" class="composer">
+                  <label for="chat-input" class="visually-hidden">Your question</label>
+                  <input id="chat-input" name="message" type="text" maxlength="1000" autocomplete="off" placeholder="Ask about your plan…" required />
+                  <button type="submit" class="send-btn" id="chat-send" aria-label="Send message"><span data-icon="send"></span><span class="send-text">Send</span></button>
+                </form>
+              </div>
+            </section>
+
+            <section id="panel-finish" class="ws-panel finish" aria-labelledby="finish-heading" tabindex="-1" hidden>
+              <span class="finish-badge" data-icon="check" data-icon-size="34"></span>
+              <h3 id="finish-heading">Your plan is ready</h3>
+              <p class="hint">You have been through every step. Save it, check what else is on around your date, or start another plan.</p>
+              <div class="finish-actions">
+                <button type="button" class="button" id="finish-print"><span data-icon="printer"></span> Print or save as PDF</button>
+                <button type="button" class="button button-secondary" id="finish-explore"><span data-icon="compass"></span> Explore events</button>
+                <button type="button" class="button button-secondary" id="finish-review"><span data-icon="layout"></span> Review the plan</button>
+                <button type="button" class="button button-secondary" id="finish-new"><span data-icon="refresh"></span> Start a new plan</button>
+              </div>
+            </section>
+
+            <div class="panel-nav no-print" id="panel-nav">
+              <button type="button" class="button button-secondary" id="prev-step"><span data-icon="arrowLeft"></span> <span id="prev-label">Back</span></button>
+              <button type="button" class="button" id="next-step"><span id="next-label">Next</span> <span data-icon="arrowRight"></span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>
+          <span data-icon="lock" data-icon-size="16"></span>
+          Your details are processed to build the plan and are not stored on our server. Estimates are guides, not quotes,
+          and AI suggestions may be imperfect, so confirm prices and availability with vendors.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
