@@ -27,7 +27,8 @@ export function loadConfig(env = process.env) {
   return Object.freeze({
     port: toInt(env.PORT, 3000, { min: 1, max: 65535 }),
     timezone: env.APP_TIMEZONE?.trim() || 'Asia/Kolkata',
-    trustProxy: toInt(env.TRUST_PROXY, 0, { min: 0, max: 5 }),
+    // Vercel always sits behind one proxy; elsewhere set TRUST_PROXY yourself.
+    trustProxy: toInt(env.TRUST_PROXY, env.VERCEL ? 1 : 0, { min: 0, max: 5 }),
     rateLimit: Object.freeze({
       windowMs: 60_000,
       apiMax: toInt(env.RATE_LIMIT_PER_MIN, 120, { min: 1 }),

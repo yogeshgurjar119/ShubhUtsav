@@ -132,6 +132,16 @@ Without `NVIDIA_API_KEY` the app still runs, using the built-in ideas and with t
 | `TRUST_PROXY` | `0` | Set to `1` behind one proxy (Render, Heroku) so rate limits see real IPs |
 | `RATE_LIMIT_PER_MIN` / `RATE_LIMIT_AI_PER_MIN` / `RATE_LIMIT_IMAGE_PER_MIN` / `RATE_LIMIT_EXPLORE_PER_MIN` | `120` / `20` / `5` / `30` | Per-IP request limits (images are the most expensive) |
 
+## Deploy on Vercel
+
+The repo is ready for Vercel with no build step: `public/` is served as static files, and `api/index.js` runs the same Express app as a serverless function (`vercel.json` rewrites `/api/*` to it and repeats the security headers for static files).
+
+1. Import the GitHub repo in Vercel. Framework preset: **Other**. Leave build and output settings empty.
+2. In **Settings, Environment Variables**, add `NVIDIA_API_KEY`, `CALENDARIFIC_API_KEY` and `TICKETMASTER_API_KEY` (optional: `NVIDIA_MODEL`, `NVIDIA_IMAGE_MODEL`, `APP_TIMEZONE`). Never commit them.
+3. Redeploy, then open `/api/health`. It should return `{"status":"ok", ...}` with `true` for each configured feature.
+
+Notes for serverless hosting: rate limits and caches live in memory, so they apply per running instance. Card art can take a few seconds, so the function is allowed up to 60 s.
+
 ## Security
 
 - **The API key never leaves the server.** The browser talks only to this app. Errors from the AI service are reduced to generic messages, with no key, upstream body or stack trace.

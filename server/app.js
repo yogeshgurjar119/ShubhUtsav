@@ -5,6 +5,7 @@ import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { todayIn } from './domain/dates.js';
 import { createApiRouter } from './http/api.js';
+import { CSP_DIRECTIVES } from './http/csp.js';
 import { errorMiddleware } from './http/errors.js';
 import { noStore, permissionsPolicy, requireJson } from './http/security.js';
 
@@ -35,25 +36,7 @@ export function createApp({ config, llm, imageClient, calendar, calendarific, ti
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        useDefaults: false,
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
-          styleSrc: ["'self'"],
-          // data: for generated card art; Ticketmaster's image CDN for event pictures
-          imgSrc: ["'self'", 'data:', 'https://*.ticketm.net'],
-          connectSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          baseUri: ["'self'"],
-          formAction: ["'self'"],
-          frameAncestors: ["'none'"],
-        },
-      },
-    }),
-  );
+  app.use(helmet({ contentSecurityPolicy: { useDefaults: false, directives: { ...CSP_DIRECTIVES } } }));
 
   app.use(permissionsPolicy);
 

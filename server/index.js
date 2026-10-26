@@ -1,10 +1,4 @@
-import { createApp } from './app.js';
-import { loadConfig } from './config.js';
-import { createCalendarService } from './services/calendar.js';
-import { createCalendarificService } from './services/calendarific.js';
-import { createNvidiaClient } from './services/nvidia.js';
-import { createNvidiaImageClient } from './services/nvidiaImage.js';
-import { createTicketmasterService } from './services/ticketmaster.js';
+import { buildApp } from './bootstrap.js';
 
 // Load .env when present (Node 20.12+). Real environment variables always win.
 try {
@@ -13,13 +7,7 @@ try {
   /* no .env file: use the real environment */
 }
 
-const config = loadConfig();
-const llm = createNvidiaClient({ ...config.nvidia, logger: console });
-const imageClient = createNvidiaImageClient({ ...config.image, logger: console });
-const calendar = createCalendarService({ url: config.holidayFeedUrl });
-const calendarific = createCalendarificService(config.calendarific);
-const ticketmaster = createTicketmasterService(config.ticketmaster);
-const app = createApp({ config, llm, imageClient, calendar, calendarific, ticketmaster });
+const { app, config, llm, calendarific, ticketmaster } = buildApp();
 
 const server = app.listen(config.port, () => {
   console.log(`ShubhUtsav running on http://localhost:${config.port}`);
