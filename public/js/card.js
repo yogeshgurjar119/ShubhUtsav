@@ -14,7 +14,12 @@ const GRADIENTS = {
   community: ['#c4620a', '#e8871e', '#3a8a58'],
   public: ['#1e1b6b', '#7a2a9a', '#e8a33d'],
 };
-const OCCASION = { wedding: 'Wedding celebration', birthday: 'Birthday celebration', community: 'Community celebration', public: 'Open to everyone' };
+const OCCASION = {
+  wedding: 'Wedding celebration',
+  birthday: 'Birthday celebration',
+  community: 'Community celebration',
+  public: 'Open to everyone',
+};
 
 /** Splits text into lines no wider than `maxWidth` (falls back to characters for unspaced scripts). */
 function wrap(ctx, text, maxWidth) {
@@ -33,7 +38,7 @@ function wrap(ctx, text, maxWidth) {
   return lines;
 }
 
-function roundedRect(ctx, x, y, w, h, r) {
+function roundedRect(ctx, { x, y, w, h, r }) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -75,7 +80,7 @@ function draw(ctx, { eventType, title, line, dateText, image }) {
 
   // A soft panel keeps the text readable on any background.
   const inset = 110;
-  roundedRect(ctx, inset, inset, WIDTH - inset * 2, HEIGHT - inset * 2, 36);
+  roundedRect(ctx, { x: inset, y: inset, w: WIDTH - inset * 2, h: HEIGHT - inset * 2, r: 36 });
   ctx.fillStyle = 'rgba(255, 250, 243, 0.92)';
   ctx.fill();
   ctx.lineWidth = 4;
@@ -125,87 +130,120 @@ function draw(ctx, { eventType, title, line, dateText, image }) {
   ctx.fillText('Made with ShubhUtsav', WIDTH / 2, HEIGHT - inset - 36);
 }
 
-/**
- * Invitation-card builder. The words are drawn on a canvas in the browser (image models draw
- * unreliable lettering); the optional AI image is only the background. Works without AI too.
- */
-export function setupCard({ getEvent, imageAvailable }) {
+/** Loads a generated image (base64) into an <img> that is safe to draw on the canvas. */
+function loadImage({ mime, data }) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('The generated image could not be displayed.'));
+    image.src = `data:${mime};base64,${data}`;
+  });
+}
+
+/** Saves the canvas as a PNG file. Calls `onError` if the browser cannot make the file. */
+function downloadCanvas(canvas, onError) {
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      onError('Could not create the file. Please try again.');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'shubhutsav-invitation.png';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+
+/** Draws the card from the current text fields and event, and keeps the canvas description up to date. */
+function createPreview({ getEvent, fields }) {
   const canvas = byId('card-canvas');
   const ctx = canvas.getContext('2d');
-  const titleInput = byId('card-title');
-  const lineInput = byId('card-line');
-  const themeSelect = byId('card-theme');
-  const artButton = byId('card-art-btn');
-  const downloadButton = byId('card-download');
-  const status = byId('card-status');
-
   let image = null;
-  let busy = false;
 
   function render() {
     const event = getEvent();
     if (!event) return;
-    const title = titleInput.value.trim() || 'Your celebration';
-    const line = lineInput.value.trim();
+    const title = fields.title.value.trim() || 'Your celebration';
+    const line = fields.line.value.trim();
     const dateText = formatDate(event.eventDate);
     draw(ctx, { eventType: event.eventType, title, line, dateText, image });
     canvas.setAttribute('aria-label', `Invitation card preview: ${title}, ${dateText}${line ? `, ${line}` : ''}`);
   }
 
-  titleInput.addEventListener('input', render);
-  lineInput.addEventListener('input', render);
+  fields.title.addEventListener('input', render);
+  fields.line.addEventListener('input', render);
 
-  artButton.addEventListener('click', async () => {
+  return {
+    canvas,
+    render,
+    setImage(next) {
+      image = next;
+      render();
+    },
+  };
+}
+
+/**
+ * Invitation-card builder. The words are drawn on a canvas in the browser (image models draw
+ * unreliable lettering); the optional AI image is only the background. Works without AI too.
+ */
+export function setupCard({ getEvent, imageAvailable }) {
+  const fields = { title: byId('card-title'), line: byId('card-line'), theme: byId('card-theme') };
+  const artButton = byId('card-art-btn');
+  const status = byId('card-status');
+  const preview = createPreview({ getEvent, fields });
+  let busy = false;
+  let session = 0; // bumped for every new plan, so a late answer for the old plan is ignored
+
+  async function createArt() {
     if (busy) return;
+    const mine = session;
     busy = true;
     artButton.disabled = true;
     status.textContent = 'Painting your background. This can take up to a minute…';
     try {
       const body = { event: getEvent() };
-      if (themeSelect.value !== DEFAULT_THEME) body.theme = themeSelect.value;
-      const { image: art } = await postJson('/api/card-art', body);
-      const loaded = new Image();
-      await new Promise((resolve, reject) => {
-        loaded.onload = resolve;
-        loaded.onerror = () => reject(new Error('The generated image could not be displayed.'));
-        loaded.src = `data:${art.mime};base64,${art.data}`;
-      });
-      image = loaded;
-      render();
+      if (fields.theme.value !== DEFAULT_THEME) body.theme = fields.theme.value;
+      const { image } = await postJson('/api/card-art', body);
+      const loaded = await loadImage(image);
+      if (mine !== session) return;
+      preview.setImage(loaded);
       status.textContent = 'Background ready. You can create another one for a different look.';
     } catch (error) {
-      status.textContent = error.message;
+      if (mine === session) status.textContent = error.message;
     } finally {
-      busy = false;
-      artButton.disabled = !imageAvailable();
-    }
-  });
-
-  downloadButton.addEventListener('click', () => {
-    render();
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        status.textContent = 'Could not create the file. Please try again.';
-        return;
+      if (mine === session) {
+        busy = false;
+        artButton.disabled = !imageAvailable();
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'shubhutsav-invitation.png';
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }, 'image/png');
+    }
+  }
+
+  artButton.addEventListener('click', createArt);
+  byId('card-download').addEventListener('click', () => {
+    preview.render();
+    downloadCanvas(preview.canvas, (message) => {
+      status.textContent = message;
+    });
   });
 
   /** Called for every new plan: resets the text, theme list and background. */
   function reset({ themes }) {
-    image = null;
-    titleInput.value = '';
-    lineInput.value = '';
-    themeSelect.replaceChildren(new Option('Classic festive', DEFAULT_THEME), ...themes.map((t) => new Option(t.title, t.title)));
+    session += 1;
+    busy = false;
+    fields.title.value = '';
+    fields.line.value = '';
+    fields.theme.replaceChildren(
+      new Option('Classic festive', DEFAULT_THEME),
+      ...themes.map((theme) => new Option(theme.title, theme.title)),
+    );
     artButton.disabled = !imageAvailable();
-    status.textContent = imageAvailable() ? '' : 'AI backgrounds are not available right now. You can still download the classic card.';
-    render();
+    status.textContent = imageAvailable()
+      ? ''
+      : 'AI backgrounds are not available right now. You can still download the classic card.';
+    preview.setImage(null);
   }
 
   return { reset };

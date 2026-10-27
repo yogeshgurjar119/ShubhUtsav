@@ -9,7 +9,10 @@ const sum = (plan) => plan.allocations.reduce((s, a) => s + a.amount, 0) + plan.
 describe('splitProportionally', () => {
   it('returns whole numbers that sum exactly to the total', () => {
     const shares = splitProportionally({ a: 1, b: 1, c: 1 }, 100);
-    assert.equal(Object.values(shares).reduce((s, n) => s + n, 0), 100);
+    assert.equal(
+      Object.values(shares).reduce((s, n) => s + n, 0),
+      100,
+    );
     assert.ok(Object.values(shares).every(Number.isInteger));
   });
 
@@ -42,12 +45,18 @@ describe('allocateBudget', () => {
 
   it('drops the venue line for a home venue and still sums to the budget', () => {
     const plan = allocateBudget({ ...base, venueType: 'home' });
-    assert.equal(plan.allocations.some((a) => a.category === 'venue'), false);
+    assert.equal(
+      plan.allocations.some((a) => a.category === 'venue'),
+      false,
+    );
     assert.equal(sum(plan), base.budget);
   });
 
   it('ignores a priority for a category the event does not use', () => {
     const plan = allocateBudget({ ...base, eventType: 'community', priorities: ['attire'] });
-    assert.equal(plan.allocations.some((a) => a.category === 'attire'), false);
+    assert.equal(
+      plan.allocations.some((a) => a.category === 'attire'),
+      false,
+    );
   });
 });

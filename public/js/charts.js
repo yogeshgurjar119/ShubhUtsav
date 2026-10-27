@@ -22,7 +22,9 @@ export function donut(segments, { centre = [], label }) {
   const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
 
   const svg = svgEl('svg', { viewBox: `0 0 ${size} ${size}`, class: 'donut', role: 'img', 'aria-label': label });
-  svg.append(svgEl('circle', { cx: 100, cy: 100, r: radius, fill: 'none', class: 'donut-track', 'stroke-width': stroke }));
+  svg.append(
+    svgEl('circle', { cx: 100, cy: 100, r: radius, fill: 'none', class: 'donut-track', 'stroke-width': stroke }),
+  );
 
   let offset = 0;
   segments.forEach((segment, index) => {

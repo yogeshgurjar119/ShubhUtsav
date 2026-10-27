@@ -96,8 +96,22 @@ export async function startServer({
   ticketmaster = fakeTicketmaster(),
   env = {},
 } = {}) {
-  const config = loadConfig({ RATE_LIMIT_AI_PER_MIN: '1000', RATE_LIMIT_IMAGE_PER_MIN: '1000', RATE_LIMIT_EXPLORE_PER_MIN: '1000', ...env });
-  const app = createApp({ config, llm, imageClient, calendar, calendarific, ticketmaster, clock: () => TODAY, logger: silentLogger });
+  const config = loadConfig({
+    RATE_LIMIT_AI_PER_MIN: '1000',
+    RATE_LIMIT_IMAGE_PER_MIN: '1000',
+    RATE_LIMIT_EXPLORE_PER_MIN: '1000',
+    ...env,
+  });
+  const app = createApp({
+    config,
+    llm,
+    imageClient,
+    calendar,
+    calendarific,
+    ticketmaster,
+    clock: () => TODAY,
+    logger: silentLogger,
+  });
   const server = await new Promise((resolve) => {
     const s = app.listen(0, '127.0.0.1', () => resolve(s));
   });

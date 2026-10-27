@@ -102,8 +102,8 @@ describe('createPlan', () => {
   });
 
   it('only includes event-specific tasks for that event type', () => {
-    const ids = createPlan(validEvent({ eventType: 'birthday', guests: 30, budget: 60_000 }), TODAY).checklist.flatMap((g) =>
-      g.items.map((i) => i.id),
+    const ids = createPlan(validEvent({ eventType: 'birthday', guests: 30, budget: 60_000 }), TODAY).checklist.flatMap(
+      (g) => g.items.map((i) => i.id),
     );
     assert.ok(!ids.includes('attire-fit'));
     assert.ok(!ids.includes('logi-stay'));
@@ -120,12 +120,21 @@ describe('createPlan', () => {
 
 describe('public events', () => {
   const publicEvent = (overrides = {}) =>
-    validEvent({ eventType: 'public', guests: 8000, budget: 3_000_000, venueType: 'outdoor', priorities: ['entertainment'], ...overrides });
+    validEvent({
+      eventType: 'public',
+      guests: 8000,
+      budget: 3_000_000,
+      venueType: 'outdoor',
+      priorities: ['entertainment'],
+      ...overrides,
+    });
 
   it('builds a plan with permits, security and crowd safety tasks', () => {
     const plan = createPlan(publicEvent(), TODAY);
     const ids = plan.checklist.flatMap((g) => g.items.map((i) => i.id));
-    for (const id of ['pub-permits', 'pub-security', 'pub-crowd', 'pub-medical', 'pub-ticketing']) assert.ok(ids.includes(id), id);
+    for (const id of ['pub-permits', 'pub-security', 'pub-crowd', 'pub-medical', 'pub-ticketing']) {
+      assert.ok(ids.includes(id), id);
+    }
     assert.ok(!ids.includes('attire-buy'));
     assert.equal(plan.summary.eventLabel, 'Public event');
   });

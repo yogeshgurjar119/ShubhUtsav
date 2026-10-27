@@ -21,7 +21,10 @@ describe('loadConfig', () => {
   it('also accepts common misspellings, and the official name wins', () => {
     assert.equal(loadConfig({ CALENDRIFIC: 'a' }).calendarific.apiKey, 'a');
     assert.equal(loadConfig({ TICKMASTER_KEY: 'b' }).ticketmaster.apiKey, 'b');
-    assert.equal(loadConfig({ TICKETMASTER_API_KEY: 'official', TICKMASTER_KEY: 'typo' }).ticketmaster.apiKey, 'official');
+    assert.equal(
+      loadConfig({ TICKETMASTER_API_KEY: 'official', TICKMASTER_KEY: 'typo' }).ticketmaster.apiKey,
+      'official',
+    );
   });
 
   it('ignores the Ticketmaster secret (only the consumer key is needed)', () => {

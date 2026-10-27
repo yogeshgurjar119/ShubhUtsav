@@ -12,45 +12,65 @@ export const PANELS = [
   { id: 'assistant', label: 'Assistant', icon: 'chat' },
 ];
 
-/**
- * The step-by-step workspace: a tab list (one panel visible at a time) with Back/Next buttons,
- * a progress bar and arrow-key navigation, following the WAI-ARIA tabs pattern.
- */
-export function setupWorkspace() {
-  const tabList = byId('ws-tabs');
-  const progressText = byId('ws-progress-text');
-  const progressBar = document.querySelector('.progress-bar');
-  const progressFill = byId('ws-progress-fill');
-  const prevButton = byId('prev-step');
-  const nextButton = byId('next-step');
-  const prevLabel = byId('prev-label');
-  const nextLabel = byId('next-label');
-  const finishPanel = byId('panel-finish');
-  const panelNav = byId('panel-nav');
-  const visited = new Set();
-  let index = 0;
+const LAST = PANELS.length - 1;
+const ARROW_STEP = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
 
+/** One tab button per panel (WAI-ARIA tabs pattern). `onSelect(i)` runs when a tab is clicked. */
+function buildTabs(onSelect) {
   const tabs = PANELS.map((panel, i) => {
     const tab = el(
       'button',
-      {
-        type: 'button',
-        role: 'tab',
-        id: `tab-${panel.id}`,
-        'aria-controls': `panel-${panel.id}`,
-        className: 'tab',
-      },
+      { type: 'button', role: 'tab', id: `tab-${panel.id}`, 'aria-controls': `panel-${panel.id}`, className: 'tab' },
       el('span', { className: 'tab-icon' }, icon(panel.icon, { size: 20 })),
       el('span', { className: 'tab-text' }, el('small', { text: `Step ${i + 1}` }), el('span', { text: panel.label })),
       el('span', { className: 'tab-done' }, icon('check', { size: 14 })),
     );
-    tab.addEventListener('click', () => go(i));
+    tab.addEventListener('click', () => onSelect(i));
     return tab;
   });
-  tabList.replaceChildren(...tabs);
+  byId('ws-tabs').replaceChildren(...tabs);
+  return tabs;
+}
+
+/** The "Step 3 of 8" text and the progress bar. */
+function createProgress() {
+  const text = byId('ws-progress-text');
+  const bar = document.querySelector('.progress-bar');
+  const fill = byId('ws-progress-fill');
+  return {
+    set(step, message) {
+      text.textContent = message;
+      bar.setAttribute('aria-valuenow', String(step));
+      bar.setAttribute('aria-valuetext', message);
+      fill.className = `fill-${step}`;
+    },
+  };
+}
+
+/** Which step a key on the tab list should move to, or null if the key does nothing. */
+function stepForKey(key, current) {
+  if (key in ARROW_STEP) return (current + ARROW_STEP[key] + PANELS.length) % PANELS.length;
+  if (key === 'Home') return 0;
+  if (key === 'End') return LAST;
+  return null;
+}
+
+/**
+ * The step-by-step workspace: a tab list (one panel visible at a time) with Back/Next buttons,
+ * a progress bar and arrow-key navigation. The last step's button says "All done".
+ */
+export function setupWorkspace() {
+  const buttons = { prev: byId('prev-step'), next: byId('next-step') };
+  const labels = { prev: byId('prev-label'), next: byId('next-label') };
+  const finishPanel = byId('panel-finish');
+  const panelNav = byId('panel-nav');
+  const progress = createProgress();
+  const visited = new Set();
+  const tabs = buildTabs((i) => go(i));
+  let index = 0;
 
   function go(next, { scroll = false } = {}) {
-    index = Math.max(0, Math.min(PANELS.length - 1, next));
+    index = Math.max(0, Math.min(LAST, next));
     visited.add(index);
     finishPanel.hidden = true;
     panelNav.hidden = false;
@@ -62,19 +82,12 @@ export function setupWorkspace() {
       tabs[i].tabIndex = active ? 0 : -1;
       tabs[i].classList.toggle('done', visited.has(i) && !active);
     });
+    tabs[index].scrollIntoView({ block: 'nearest', inline: 'nearest' }); // keeps the active tab visible on phones
 
-    tabs[index].scrollIntoView({ block: 'nearest', inline: 'nearest' }); // keeps the active tab visible in the mobile strip
-
-    const step = index + 1;
-    progressText.textContent = `Step ${step} of ${PANELS.length}: ${PANELS[index].label}`;
-    progressBar.setAttribute('aria-valuenow', String(step));
-    progressBar.setAttribute('aria-valuetext', progressText.textContent);
-    progressFill.className = `fill-${step}`;
-
-    prevButton.disabled = index === 0;
-    nextButton.disabled = false; // on the last step this becomes "All done"
-    prevLabel.textContent = index === 0 ? 'Back' : `Back: ${PANELS[index - 1].label}`;
-    nextLabel.textContent = index === PANELS.length - 1 ? 'All done' : `Next: ${PANELS[index + 1].label}`;
+    progress.set(index + 1, `Step ${index + 1} of ${PANELS.length}: ${PANELS[index].label}`);
+    buttons.prev.disabled = index === 0;
+    labels.prev.textContent = index === 0 ? 'Back' : `Back: ${PANELS[index - 1].label}`;
+    labels.next.textContent = index === LAST ? 'All done' : `Next: ${PANELS[index + 1].label}`;
 
     if (scroll) {
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,35 +105,29 @@ export function setupWorkspace() {
       tab.tabIndex = i === 0 ? 0 : -1;
       tab.classList.add('done');
     });
-    progressText.textContent = 'All steps complete';
-    progressBar.setAttribute('aria-valuenow', String(PANELS.length));
-    progressBar.setAttribute('aria-valuetext', 'All steps complete');
-    progressFill.className = `fill-${PANELS.length}`;
+    progress.set(PANELS.length, 'All steps complete');
     byId('results-heading').scrollIntoView({ block: 'start' });
     finishPanel.focus({ preventScroll: true });
   }
 
-  prevButton.addEventListener('click', () => go(index - 1, { scroll: true }));
-  nextButton.addEventListener('click', () => (index === PANELS.length - 1 ? finish() : go(index + 1, { scroll: true })));
+  buttons.prev.addEventListener('click', () => go(index - 1, { scroll: true }));
+  buttons.next.addEventListener('click', () => (index === LAST ? finish() : go(index + 1, { scroll: true })));
   byId('finish-review').addEventListener('click', () => go(0, { scroll: true }));
 
-  tabList.addEventListener('keydown', (event) => {
-    const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
-    let target = null;
-    if (event.key in keys) target = (index + keys[event.key] + PANELS.length) % PANELS.length;
-    else if (event.key === 'Home') target = 0;
-    else if (event.key === 'End') target = PANELS.length - 1;
+  byId('ws-tabs').addEventListener('keydown', (event) => {
+    const target = stepForKey(event.key, index);
     if (target === null) return;
     event.preventDefault();
     go(target);
     tabs[target].focus();
   });
 
-  /** Starts again at the first step (called when a new plan arrives). */
-  function reset() {
-    visited.clear();
-    go(0);
-  }
-
-  return { go, reset };
+  return {
+    go,
+    /** Starts again at the first step (called when a new plan arrives). */
+    reset() {
+      visited.clear();
+      go(0);
+    },
+  };
 }

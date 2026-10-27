@@ -11,7 +11,10 @@ const DEFAULT_IMAGE_MODELS = ['black-forest-labs/flux.2-klein-4b', 'black-forest
 const DEFAULT_MODELS = ['nvidia/nemotron-3.5-bolt-e4b', 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning'];
 
 const parseList = (value, fallback) => {
-  const items = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const items = (value ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return items.length > 0 ? items : fallback;
 };
 
@@ -42,7 +45,9 @@ export function loadConfig(env = process.env) {
       // NVIDIA retires hosted models (HTTP 410), and one stale setting should not switch the AI off.
       models: [...new Set([...parseList(env.NVIDIA_MODEL, []), ...DEFAULT_MODELS])],
       baseUrl: (env.NVIDIA_BASE_URL?.trim() || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, ''),
-      timeoutMs: toInt(env.LLM_TIMEOUT_MS, 20000, { min: 1000, max: 120000 }),
+      timeoutMs: toInt(env.LLM_TIMEOUT_MS, 20000, { min: 1000, max: 120000 }), // per model
+      // All models together must finish inside the hosting limit (Vercel functions: 60 s).
+      totalTimeoutMs: toInt(env.LLM_TOTAL_TIMEOUT_MS, 40000, { min: 1000, max: 300000 }),
     }),
     // Image generation uses the same NVIDIA account by default; a separate key can override it.
     image: Object.freeze({
@@ -50,6 +55,7 @@ export function loadConfig(env = process.env) {
       models: [...new Set([...parseList(env.NVIDIA_IMAGE_MODEL, []), ...DEFAULT_IMAGE_MODELS])],
       baseUrl: (env.NVIDIA_IMAGE_BASE_URL?.trim() || 'https://ai.api.nvidia.com/v1/genai').replace(/\/+$/, ''),
       timeoutMs: toInt(env.IMAGE_TIMEOUT_MS, 30000, { min: 5000, max: 120000 }), // per model
+      totalTimeoutMs: toInt(env.IMAGE_TOTAL_TIMEOUT_MS, 50000, { min: 5000, max: 300000 }),
     }),
     // Explore panel: festivals and holidays (Calendarific) and live events (Ticketmaster).
     calendarific: Object.freeze({

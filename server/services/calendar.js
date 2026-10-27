@@ -21,7 +21,10 @@ export function createCalendarService({
   let inflight = null;
 
   async function download() {
-    const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'text/calendar' } });
+    const response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: 'text/calendar' },
+    });
     if (!response.ok) throw new Error(`calendar feed returned status ${response.status}`);
     const text = await response.text();
     if (text.length > MAX_FEED_CHARS) throw new Error('calendar feed is unexpectedly large');

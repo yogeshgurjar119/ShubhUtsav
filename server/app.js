@@ -31,7 +31,16 @@ const limiter = (max, windowMs) =>
  *  - `ticketmaster`: object with `available` and `searchEvents()`
  *  - `clock`: returns today's date as YYYY-MM-DD
  */
-export function createApp({ config, llm, imageClient, calendar, calendarific, ticketmaster, clock = () => todayIn(config.timezone), logger = console }) {
+export function createApp({
+  config,
+  llm,
+  imageClient,
+  calendar,
+  calendarific,
+  ticketmaster,
+  clock = () => todayIn(config.timezone),
+  logger = console,
+}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);

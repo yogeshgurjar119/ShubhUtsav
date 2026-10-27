@@ -1,18 +1,22 @@
 {
   "name": "shubhutsav",
   "version": "1.0.0",
-  "description": "ShubhUtsav: a GenAI celebration and event planner for weddings, birthdays and community events.",
+  "description": "ShubhUtsav: a GenAI celebration and event planner for weddings, birthdays, community gatherings and public events.",
   "type": "module",
   "private": true,
   "license": "GPL-3.0-or-later",
   "engines": {
-    "node": ">=20.12"
+    "node": "22.x"
   },
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
+    "build": "node -e \"console.log('No build step needed: public/ is static and api/ is the server function.')\"",
     "test": "node --test",
-    "lint": "eslint ."
+    "coverage": "node --test --experimental-test-coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -23,6 +27,25 @@
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "eslint": "^9.17.0",
-    "globals": "^15.14.0"
-  }
+    "globals": "^15.14.0",
+    "prettier": "^3.9.10"
+  },
+  "author": "Yogesh Gurjar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yogeshgurjar119/ShubhUtsav.git"
+  },
+  "homepage": "https://github.com/yogeshgurjar119/ShubhUtsav#readme",
+  "bugs": {
+    "url": "https://github.com/yogeshgurjar119/ShubhUtsav/issues"
+  },
+  "keywords": [
+    "event-planner",
+    "genai",
+    "nvidia",
+    "express",
+    "wedding",
+    "india",
+    "budget-planner"
+  ]
 }

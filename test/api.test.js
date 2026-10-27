@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 import { LlmError } from '../server/services/nvidia.js';
 import { parseIcs } from '../server/domain/calendar.js';
-import { fakeCalendar, fakeImage, fakeLlm, startServer, TINY_PNG, validEvent } from '../testing/helpers.js';
+import { fakeCalendar, fakeImage, fakeLlm, startServer, TINY_PNG, TODAY, validEvent } from '../testing/helpers.js';
 
 const goodIdeas = JSON.stringify({
   themes: [{ title: 'Royal', description: 'Maroon and gold' }],
@@ -24,8 +24,22 @@ describe('API', () => {
     it('reports status and whether AI is configured', async () => {
       const on = await boot({ llm: fakeLlm('{}') });
       const off = await boot({ llm: fakeLlm('{}', { available: false }) });
-      assert.deepEqual((await on.request('/api/health')).json, { status: 'ok', ai: true, image: true, calendar: true, explore: { festivals: true, events: true } });
-      assert.deepEqual((await off.request('/api/health')).json, { status: 'ok', ai: false, image: true, calendar: true, explore: { festivals: true, events: true } });
+      assert.deepEqual((await on.request('/api/health')).json, {
+        status: 'ok',
+        today: TODAY,
+        ai: true,
+        image: true,
+        calendar: true,
+        explore: { festivals: true, events: true },
+      });
+      assert.deepEqual((await off.request('/api/health')).json, {
+        status: 'ok',
+        today: TODAY,
+        ai: false,
+        image: true,
+        calendar: true,
+        explore: { festivals: true, events: true },
+      });
     });
   });
 
@@ -52,7 +66,10 @@ describe('API', () => {
 
     it('rejects invalid input with field-level details', async () => {
       const s = await boot();
-      const res = await s.request('/api/plan', { method: 'POST', body: validEvent({ guests: 0, eventDate: '2020-01-01' }) });
+      const res = await s.request('/api/plan', {
+        method: 'POST',
+        body: validEvent({ guests: 0, eventDate: '2020-01-01' }),
+      });
       assert.equal(res.status, 400);
       assert.equal(res.json.error.code, 'validation_error');
       const fields = res.json.error.details.map((d) => d.field);
@@ -61,7 +78,11 @@ describe('API', () => {
 
     it('rejects malformed JSON and oversized bodies', async () => {
       const s = await boot();
-      const bad = await s.request('/api/plan', { method: 'POST', raw: '{oops', headers: { 'Content-Type': 'application/json' } });
+      const bad = await s.request('/api/plan', {
+        method: 'POST',
+        raw: '{oops',
+        headers: { 'Content-Type': 'application/json' },
+      });
       assert.equal(bad.status, 400);
       assert.equal(bad.json.error.code, 'invalid_json');
 
@@ -71,7 +92,12 @@ describe('API', () => {
 
     it('never echoes internals when something unexpected breaks', async () => {
       const s = await boot({
-        llm: { available: true, complete: async () => { throw new TypeError('secret internal detail'); } },
+        llm: {
+          available: true,
+          complete: async () => {
+            throw new TypeError('secret internal detail');
+          },
+        },
       });
       const res = await s.request('/api/chat', {
         method: 'POST',
@@ -117,7 +143,12 @@ describe('API', () => {
       assert.equal((await off.request('/api/chat', chat([{ role: 'user', content: 'hi' }]))).status, 503);
 
       const broken = await boot({
-        llm: { available: true, complete: async () => { throw new LlmError('upstream down'); } },
+        llm: {
+          available: true,
+          complete: async () => {
+            throw new LlmError('upstream down');
+          },
+        },
       });
       const res = await broken.request('/api/chat', chat([{ role: 'user', content: 'hi' }]));
       assert.equal(res.status, 502);
@@ -127,7 +158,13 @@ describe('API', () => {
 
   describe('date insights', () => {
     const events = parseIcs(
-      ['BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20270620', 'SUMMARY:Test Festival', 'DESCRIPTION:Public holiday', 'END:VEVENT'].join('\r\n'),
+      [
+        'BEGIN:VEVENT',
+        'DTSTART;VALUE=DATE:20270620',
+        'SUMMARY:Test Festival',
+        'DESCRIPTION:Public holiday',
+        'END:VEVENT',
+      ].join('\r\n'),
     );
 
     it('adds festival cards and advice for the chosen date', async () => {
@@ -230,9 +267,17 @@ describe('API', () => {
     it('only accepts JSON for POST requests', async () => {
       const s = await boot();
       const body = JSON.stringify(validEvent());
-      const form = await s.request('/api/plan', { method: 'POST', raw: body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      const form = await s.request('/api/plan', {
+        method: 'POST',
+        raw: body,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
       assert.equal(form.status, 415);
-      const text = await s.request('/api/plan', { method: 'POST', raw: body, headers: { 'Content-Type': 'text/plain' } });
+      const text = await s.request('/api/plan', {
+        method: 'POST',
+        raw: body,
+        headers: { 'Content-Type': 'text/plain' },
+      });
       assert.equal(text.status, 415);
       const none = await s.request('/api/plan', { method: 'POST', raw: body });
       assert.equal(none.status, 415);
@@ -256,7 +301,10 @@ describe('API', () => {
 
     it('does not expose unknown fields to the planner', async () => {
       const s = await boot();
-      const res = await s.request('/api/plan', { method: 'POST', body: { ...validEvent(), __proto__: { admin: true }, role: 'admin' } });
+      const res = await s.request('/api/plan', {
+        method: 'POST',
+        body: { ...validEvent(), __proto__: { admin: true }, role: 'admin' },
+      });
       assert.equal(res.status, 400);
     });
   });

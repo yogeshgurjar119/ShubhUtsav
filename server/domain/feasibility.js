@@ -2,6 +2,11 @@ import { EVENTS } from './catalog.js';
 
 const inr = (n) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
+function budgetStatus(perGuest, lean, comfortable) {
+  if (perGuest < lean) return 'insufficient';
+  return perGuest < comfortable ? 'tight' : 'comfortable';
+}
+
 /**
  * Is the budget realistic for the headcount? Compares spend per guest with the
  * lean / comfortable benchmarks for the event type and city tier.
@@ -12,7 +17,7 @@ export function assessFeasibility({ eventType, cityTier, guests, budget, venueTy
   const comfortablePerGuest = comfortable[cityTier];
   const perGuest = Math.round(budget / guests);
 
-  const status = perGuest < leanPerGuest ? 'insufficient' : perGuest < comfortablePerGuest ? 'tight' : 'comfortable';
+  const status = budgetStatus(perGuest, leanPerGuest, comfortablePerGuest);
   const advice = [];
 
   if (status === 'insufficient') {
@@ -21,7 +26,9 @@ export function assessFeasibility({ eventType, cityTier, guests, budget, venueTy
       `${inr(perGuest)} per guest is below the usual minimum of ${inr(leanPerGuest)} for this kind of event. ` +
         `Trim the guest list to about ${affordableGuests}, or raise the budget to ${inr(leanPerGuest * guests)}.`,
     );
-    if (venueType !== 'home') advice.push('Hosting at home or in a community hall can free a large share of the budget.');
+    if (venueType !== 'home') {
+      advice.push('Hosting at home or in a community hall can free a large share of the budget.');
+    }
   } else if (status === 'tight') {
     advice.push(
       `${inr(perGuest)} per guest is workable but tight (comfortable is about ${inr(comfortablePerGuest)}). ` +

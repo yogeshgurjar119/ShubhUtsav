@@ -31,7 +31,17 @@ export const EVENTS = Object.freeze({
   wedding: {
     label: 'Wedding',
     // Share of the spendable budget (before the contingency reserve). Need not sum to 100.
-    weights: { venue: 22, catering: 30, decor: 12, photography: 10, attire: 12, entertainment: 6, invitations: 2, gifts: 3, logistics: 3 },
+    weights: {
+      venue: 22,
+      catering: 30,
+      decor: 12,
+      photography: 10,
+      attire: 12,
+      entertainment: 6,
+      invitations: 2,
+      gifts: 3,
+      logistics: 3,
+    },
     // Minimum and comfortable total spend per guest in INR, by city tier.
     perGuest: {
       lean: { metro: 2500, tier2: 1800, tier3: 1300 },
@@ -40,7 +50,17 @@ export const EVENTS = Object.freeze({
   },
   birthday: {
     label: 'Birthday',
-    weights: { venue: 15, catering: 35, decor: 18, photography: 6, attire: 3, entertainment: 15, invitations: 2, gifts: 4, logistics: 2 },
+    weights: {
+      venue: 15,
+      catering: 35,
+      decor: 18,
+      photography: 6,
+      attire: 3,
+      entertainment: 15,
+      invitations: 2,
+      gifts: 4,
+      logistics: 2,
+    },
     perGuest: {
       lean: { metro: 1000, tier2: 700, tier3: 500 },
       comfortable: { metro: 2200, tier2: 1600, tier3: 1100 },
@@ -57,7 +77,16 @@ export const EVENTS = Object.freeze({
   },
   community: {
     label: 'Community event',
-    weights: { venue: 20, catering: 35, decor: 10, photography: 4, entertainment: 15, invitations: 3, gifts: 3, logistics: 10 },
+    weights: {
+      venue: 20,
+      catering: 35,
+      decor: 10,
+      photography: 4,
+      entertainment: 15,
+      invitations: 3,
+      gifts: 3,
+      logistics: 10,
+    },
     perGuest: {
       lean: { metro: 400, tier2: 300, tier3: 200 },
       comfortable: { metro: 900, tier2: 650, tier3: 450 },

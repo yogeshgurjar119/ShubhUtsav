@@ -39,7 +39,10 @@ export function createCache({ ttlMs, maxEntries = 200, now = () => Date.now() })
 export async function fetchJson(fetchImpl, url, { timeoutMs, label }) {
   let response;
   try {
-    response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'application/json' } });
+    response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: 'application/json' },
+    });
   } catch (error) {
     const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
     throw new UpstreamError(timedOut ? `${label} timed out` : `Could not reach ${label}`);

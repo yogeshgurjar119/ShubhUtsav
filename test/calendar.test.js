@@ -10,7 +10,13 @@ const feed = (...events) => `BEGIN:VCALENDAR\r\nVERSION:2.0\r\n${events.join('')
 
 describe('parseIcs', () => {
   it('reads dates, names and holiday kind, sorted by date', () => {
-    const events = parseIcs(feed(vevent('20271029', 'Diwali/Deepavali', 'Public holiday'), vevent('20270322', 'Holi', 'Public holiday'), vevent('20270306', 'Maha Shivaratri')));
+    const events = parseIcs(
+      feed(
+        vevent('20271029', 'Diwali/Deepavali', 'Public holiday'),
+        vevent('20270322', 'Holi', 'Public holiday'),
+        vevent('20270306', 'Maha Shivaratri'),
+      ),
+    );
     assert.deepEqual(
       events.map((e) => [e.date, e.name, e.kind]),
       [
@@ -23,7 +29,10 @@ describe('parseIcs', () => {
 
   it('flags tentative dates, unescapes text and removes duplicates', () => {
     const events = parseIcs(
-      feed(vevent('20270617', 'Muharram\\, Ashura (tentative)', 'Public holiday\\nDate is tentative'), vevent('20270617', 'Muharram\\, Ashura (tentative)')),
+      feed(
+        vevent('20270617', 'Muharram\\, Ashura (tentative)', 'Public holiday\\nDate is tentative'),
+        vevent('20270617', 'Muharram\\, Ashura (tentative)'),
+      ),
     );
     assert.equal(events.length, 1);
     assert.equal(events[0].name, 'Muharram, Ashura (tentative)');
@@ -31,9 +40,19 @@ describe('parseIcs', () => {
   });
 
   it('handles folded lines and skips malformed or impossible entries', () => {
-    const folded = 'BEGIN:VEVENT\r\nDTSTART;VALUE=DATE:20270101\r\nSUMMARY:New Year\r\n \'s Day\r\nEND:VEVENT\r\n';
-    const events = parseIcs(feed(folded, vevent('20270230', 'Impossible day'), 'BEGIN:VEVENT\r\nSUMMARY:No date\r\nEND:VEVENT\r\n', vevent('2027', 'Bad date')));
-    assert.deepEqual(events.map((e) => e.name), ["New Year's Day"]);
+    const folded = "BEGIN:VEVENT\r\nDTSTART;VALUE=DATE:20270101\r\nSUMMARY:New Year\r\n 's Day\r\nEND:VEVENT\r\n";
+    const events = parseIcs(
+      feed(
+        folded,
+        vevent('20270230', 'Impossible day'),
+        'BEGIN:VEVENT\r\nSUMMARY:No date\r\nEND:VEVENT\r\n',
+        vevent('2027', 'Bad date'),
+      ),
+    );
+    assert.deepEqual(
+      events.map((e) => e.name),
+      ["New Year's Day"],
+    );
   });
 
   it('strips control characters and caps long names', () => {
@@ -44,7 +63,13 @@ describe('parseIcs', () => {
 });
 
 describe('analyzeDate', () => {
-  const events = parseIcs(feed(vevent('20271029', 'Diwali/Deepavali', 'Public holiday'), vevent('20271031', 'Bhai Duj'), vevent('20270322', 'Holi', 'Public holiday')));
+  const events = parseIcs(
+    feed(
+      vevent('20271029', 'Diwali/Deepavali', 'Public holiday'),
+      vevent('20271031', 'Bhai Duj'),
+      vevent('20270322', 'Holi', 'Public holiday'),
+    ),
+  );
 
   it('warns when the date is itself a festival', () => {
     const r = analyzeDate({ eventDate: '2027-10-29', events });
@@ -70,14 +95,17 @@ describe('analyzeDate', () => {
 
   it('ignores events outside the window and caps the card list', () => {
     assert.equal(analyzeDate({ eventDate: '2027-06-22', events }).nearby.length, 0);
-    const many = parseIcs(feed(...Array.from({ length: 12 }, (_, i) => vevent(`202706${String(10 + i).padStart(2, '0')}`, `Fest ${i}`))));
+    const many = parseIcs(
+      feed(...Array.from({ length: 12 }, (_, i) => vevent(`202706${String(10 + i).padStart(2, '0')}`, `Fest ${i}`))),
+    );
     assert.equal(analyzeDate({ eventDate: '2027-06-15', events: many, windowDays: 10 }).nearby.length, 8);
   });
 });
 
 describe('calendar service', () => {
   const okResponse = () => new Response(feed(vevent('20271029', 'Diwali', 'Public holiday')), { status: 200 });
-  const make = (fetchImpl, extra = {}) => createCalendarService({ url: 'https://feed.test/x.ics', fetchImpl, logger: silentLogger, ...extra });
+  const make = (fetchImpl, extra = {}) =>
+    createCalendarService({ url: 'https://feed.test/x.ics', fetchImpl, logger: silentLogger, ...extra });
 
   it('downloads once and serves the cache afterwards', async () => {
     let calls = 0;
@@ -113,7 +141,11 @@ describe('calendar service', () => {
   it('refreshes after the cache expires and keeps stale data if the refresh fails', async () => {
     let clock = 0;
     let fail = false;
-    const service = make(async () => (fail ? new Response('no', { status: 503 }) : okResponse()), { now: () => clock, ttlMs: 1000, failureTtlMs: 100 });
+    const service = make(async () => (fail ? new Response('no', { status: 503 }) : okResponse()), {
+      now: () => clock,
+      ttlMs: 1000,
+      failureTtlMs: 100,
+    });
     assert.equal((await service.getEvents()).length, 1);
     fail = true;
     clock = 2000;
@@ -121,7 +153,11 @@ describe('calendar service', () => {
   });
 
   it('is inert when no URL is configured', async () => {
-    const service = createCalendarService({ url: '', fetchImpl: async () => assert.fail('must not fetch'), logger: silentLogger });
+    const service = createCalendarService({
+      url: '',
+      fetchImpl: async () => assert.fail('must not fetch'),
+      logger: silentLogger,
+    });
     assert.equal(service.available, false);
     assert.deepEqual(await service.getEvents(), []);
   });

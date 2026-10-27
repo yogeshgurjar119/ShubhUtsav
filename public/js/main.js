@@ -3,9 +3,17 @@ import { setupCard } from './card.js';
 import { setupChat } from './chat.js';
 import { setupExplore } from './explore.js';
 import { byId } from './dom.js';
-import { formatDate } from './format.js';
+import { formatDate, setServerToday } from './format.js';
 import { hydrateIcons } from './icons.js';
-import { renderBudget, renderChecklist, renderChecklistRing, renderDates, renderIdeas, renderSummary, renderTimeline } from './render.js';
+import {
+  renderBudget,
+  renderChecklist,
+  renderChecklistRing,
+  renderDates,
+  renderIdeas,
+  renderSummary,
+  renderTimeline,
+} from './render.js';
 import { loadChecked, planKey, saveChecked } from './storage.js';
 import { setupTheme } from './theme.js';
 import { setupWizard } from './wizard.js';
@@ -122,7 +130,8 @@ function showPlan({ plan, ideas, dateInsights }) {
   );
   updateProgress();
 
-  byId('results-sub').textContent = `${plan.summary.eventLabel} on ${formatDate(plan.summary.eventDate)} · ${plan.summary.guests.toLocaleString('en-IN')} guests`;
+  byId('results-sub').textContent =
+    `${plan.summary.eventLabel} on ${formatDate(plan.summary.eventDate)} · ${plan.summary.guests.toLocaleString('en-IN')} guests`;
   chat.reset();
   card.reset(ideas);
   workspace.reset();
@@ -174,4 +183,10 @@ form.addEventListener('input', clearErrors);
 getHealth().then((health) => {
   aiEnabled = Boolean(health?.ai);
   imageEnabled = Boolean(health?.image);
+  if (health?.today) {
+    // Use the server's date for every date limit, so the pickers match what the server accepts.
+    setServerToday(health.today);
+    wizard.refreshDates();
+    explore.refreshDates();
+  }
 });

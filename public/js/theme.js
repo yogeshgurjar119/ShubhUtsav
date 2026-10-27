@@ -21,7 +21,13 @@ export function setupTheme(button) {
   function paint() {
     const isDark = root.dataset.theme === 'dark';
     // The icon shows what you will switch to; the label says the same in words.
-    button.replaceChildren(icon(isDark ? 'sun' : 'moon', { size: 20 }), Object.assign(document.createElement('span'), { className: 'nav-text', textContent: isDark ? 'Light mode' : 'Dark mode' }));
+    button.replaceChildren(
+      icon(isDark ? 'sun' : 'moon', { size: 20 }),
+      Object.assign(document.createElement('span'), {
+        className: 'nav-text',
+        textContent: isDark ? 'Light mode' : 'Dark mode',
+      }),
+    );
     button.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
     button.title = button.getAttribute('aria-label');
   }

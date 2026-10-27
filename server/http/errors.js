@@ -33,9 +33,13 @@ export function errorMiddleware(logger) {
   // eslint-disable-next-line no-unused-vars
   return (error, req, res, next) => {
     if (error instanceof HttpError) return send(res, error.status, error.code, error.message, error.details);
-    if (error instanceof ZodError) return send(res, 400, 'validation_error', 'Some details need fixing', formatIssues(error));
+    if (error instanceof ZodError) {
+      return send(res, 400, 'validation_error', 'Some details need fixing', formatIssues(error));
+    }
     if (error?.type === 'entity.too.large') return send(res, 413, 'payload_too_large', 'The request is too large');
-    if (error?.type === 'entity.parse.failed') return send(res, 400, 'invalid_json', 'The request body is not valid JSON');
+    if (error?.type === 'entity.parse.failed') {
+      return send(res, 400, 'invalid_json', 'The request body is not valid JSON');
+    }
 
     logger.error(`Unhandled error: ${error?.name ?? 'Error'}: ${error?.message ?? 'unknown'}`);
     return send(res, 500, 'internal_error', 'Something went wrong. Please try again.');

@@ -1,0 +1,7 @@
+node_modules/
+demo-video/
+coverage/
+package-lock.json
+# Markdown and HTML are written by hand: Prettier would re-wrap prose and inline elements.
+*.md
+*.html

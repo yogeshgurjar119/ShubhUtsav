@@ -37,56 +37,97 @@ export function renderSummary(plan) {
   };
 }
 
-export function renderBudget({ budget }) {
-  const segments = [...budget.allocations.map((a) => ({ label: a.label, value: a.amount })), { label: 'Contingency reserve', value: budget.contingency.amount }];
-  const chart = donut(segments, {
+function budgetChart(budget) {
+  const segments = [
+    ...budget.allocations.map((a) => ({ label: a.label, value: a.amount })),
+    { label: 'Contingency reserve', value: budget.contingency.amount },
+  ];
+  return donut(segments, {
     centre: [formatINR(budget.total), 'total budget'],
     label: `Budget split: ${segments.map((s) => `${s.label} ${formatINR(s.value)}`).join(', ')}`,
   });
+}
 
-  const row = (index, label, iconName, percent, amount, extra) =>
+/** One table row: colour swatch, icon, name, share and amount. */
+function budgetRow({ index, label, iconName, percent, amount, extra }) {
+  return el(
+    'tr',
+    {},
     el(
-      'tr',
-      {},
-      el(
-        'th',
-        { scope: 'row' },
-        el('span', { className: `swatch seg-bg-${(index % 9) + 1}` }),
-        el('span', { className: 'row-icon' }, icon(iconName, { size: 18 })),
-        label,
-        extra,
-      ),
-      el('td', { className: 'num', text: `${percent}%` }),
-      el('td', { className: 'num', text: formatINR(amount) }),
-    );
-
-  const rows = budget.allocations.map((a, i) =>
-    row(i, a.label, CATEGORY_ICON[a.category], a.percent, a.amount, a.priority && el('span', { className: 'badge badge-priority', text: 'Priority' })),
+      'th',
+      { scope: 'row' },
+      el('span', { className: `swatch seg-bg-${(index % 9) + 1}` }),
+      el('span', { className: 'row-icon' }, icon(iconName, { size: 18 })),
+      label,
+      extra,
+    ),
+    el('td', { className: 'num', text: `${percent}%` }),
+    el('td', { className: 'num', text: formatINR(amount) }),
   );
-  rows.push(row(budget.allocations.length, 'Contingency reserve', 'shield', budget.contingency.percent, budget.contingency.amount));
+}
 
+function budgetTable(budget) {
+  const rows = budget.allocations.map((a, index) =>
+    budgetRow({
+      index,
+      label: a.label,
+      iconName: CATEGORY_ICON[a.category],
+      percent: a.percent,
+      amount: a.amount,
+      extra: a.priority && el('span', { className: 'badge badge-priority', text: 'Priority' }),
+    }),
+  );
+  rows.push(
+    budgetRow({
+      index: budget.allocations.length,
+      label: 'Contingency reserve',
+      iconName: 'shield',
+      percent: budget.contingency.percent,
+      amount: budget.contingency.amount,
+    }),
+  );
+
+  const caption = 'Suggested spend by category. The reserve covers surprises such as extra guests or price changes.';
+  const header = el(
+    'tr',
+    {},
+    el('th', { scope: 'col', text: 'Category' }),
+    el('th', { scope: 'col', className: 'num', text: 'Share' }),
+    el('th', { scope: 'col', className: 'num', text: 'Amount' }),
+  );
+  const footer = el(
+    'tr',
+    {},
+    el('th', { scope: 'row', colspan: 2, text: 'Total' }),
+    el('td', { className: 'num', text: formatINR(budget.total) }),
+  );
+  return el(
+    'table',
+    {},
+    el('caption', { text: caption }),
+    el('thead', {}, header),
+    el('tbody', {}, rows),
+    el('tfoot', {}, footer),
+  );
+}
+
+export function renderBudget({ budget }) {
   return el(
     'div',
     { className: 'budget-layout' },
-    el('div', { className: 'chart-box' }, chart),
-    el(
-      'div',
-      { className: 'table-wrap' },
-      el(
-        'table',
-        {},
-        el('caption', { text: 'Suggested spend by category. The reserve covers surprises such as extra guests or price changes.' }),
-        el('thead', {}, el('tr', {}, el('th', { scope: 'col', text: 'Category' }), el('th', { scope: 'col', className: 'num', text: 'Share' }), el('th', { scope: 'col', className: 'num', text: 'Amount' }))),
-        el('tbody', {}, rows),
-        el('tfoot', {}, el('tr', {}, el('th', { scope: 'row', colspan: 2, text: 'Total' }), el('td', { className: 'num', text: formatINR(budget.total) }))),
-      ),
-    ),
+    el('div', { className: 'chart-box' }, budgetChart(budget)),
+    el('div', { className: 'table-wrap' }, budgetTable(budget)),
   );
 }
 
 export function renderTimeline({ timeline }) {
   const note = timeline.compressed
-    ? el('p', { className: 'callout', role: 'note' }, icon('alert', { size: 18 }), ' Your date is closer than the ideal lead time, so the steps are squeezed together. Start with the earliest ones today.')
+    ? el(
+        'p',
+        { className: 'callout', role: 'note' },
+        icon('alert', { size: 18 }),
+        ' Your date is closer than the ideal lead time, so the steps are squeezed together. Start with the earliest ones today.',
+      )
     : null;
   const items = timeline.milestones.map((m) =>
     el(
@@ -94,8 +135,15 @@ export function renderTimeline({ timeline }) {
       { className: 'milestone' },
       el('span', { className: 'milestone-dot', 'aria-hidden': 'true' }),
       el('h4', { text: m.title }),
-      el('time', { datetime: m.date, text: `${formatDate(m.date)} · ${m.daysBefore === 0 ? 'event day' : `${daysLabel(m.daysBefore)} before`}` }),
-      el('ul', {}, m.tasks.map((task) => el('li', { text: task }))),
+      el('time', {
+        datetime: m.date,
+        text: `${formatDate(m.date)} · ${m.daysBefore === 0 ? 'event day' : `${daysLabel(m.daysBefore)} before`}`,
+      }),
+      el(
+        'ul',
+        {},
+        m.tasks.map((task) => el('li', { text: task })),
+      ),
     ),
   );
   return [note, el('ol', { className: 'timeline' }, items)];
@@ -134,7 +182,12 @@ export function renderChecklist({ checklist }, checked, onToggle) {
                 'span',
                 { className: 'task' },
                 item.task,
-                el('span', { className: 'by' }, el('span', { className: `pill pill-${item.priority}`, text: PRIORITY_TEXT[item.priority] }), item.urgent ? el('strong', { className: 'urgent', text: ` ${when}` }) : ` ${when}`),
+                el(
+                  'span',
+                  { className: 'by' },
+                  el('span', { className: `pill pill-${item.priority}`, text: PRIORITY_TEXT[item.priority] }),
+                  item.urgent ? el('strong', { className: 'urgent', text: ` ${when}` }) : ` ${when}`,
+                ),
               ),
             ),
           );
@@ -149,13 +202,27 @@ export function renderChecklistRing(done, total) {
 }
 
 const listCard = (iconName, title, items) =>
-  el('div', { className: 'idea-card' }, el('h4', {}, el('span', { className: 'row-icon' }, icon(iconName, { size: 18 })), title), el('ul', {}, items.map((i) => el('li', { text: i }))));
+  el(
+    'div',
+    { className: 'idea-card' },
+    el('h4', {}, el('span', { className: 'row-icon' }, icon(iconName, { size: 18 })), title),
+    el(
+      'ul',
+      {},
+      items.map((i) => el('li', { text: i })),
+    ),
+  );
 
 export function renderIdeas(ideas) {
   const source =
     ideas.source === 'ai'
       ? el('p', { className: 'source' }, icon('sparkles', { size: 16 }), ' Personalised by AI from your answers.')
-      : el('p', { className: 'source' }, icon('bulb', { size: 16 }), ' Built-in ideas (the AI service is not available right now).');
+      : el(
+          'p',
+          { className: 'source' },
+          icon('bulb', { size: 16 }),
+          ' Built-in ideas (the AI service is not available right now).',
+        );
   return [
     source,
     el(
@@ -165,13 +232,23 @@ export function renderIdeas(ideas) {
         'div',
         { className: 'idea-card' },
         el('h4', {}, el('span', { className: 'row-icon' }, icon('sparkles', { size: 18 })), 'Themes'),
-        el('ul', {}, ideas.themes.map((t) => el('li', {}, el('strong', { text: t.title }), ` – ${t.description}`))),
+        el(
+          'ul',
+          {},
+          ideas.themes.map((t) => el('li', {}, el('strong', { text: t.title }), ` – ${t.description}`)),
+        ),
       ),
       listCard('utensils', 'Menu ideas', ideas.menu),
       listCard('music', 'Entertainment', ideas.entertainment),
       listCard('wallet', 'Ways to save', ideas.budgetTips),
     ),
-    ideas.personalTouch && el('p', { className: 'callout' }, icon('heart', { size: 18 }), el('span', {}, el('strong', { text: ' Personal touch: ' }), ideas.personalTouch)),
+    ideas.personalTouch &&
+      el(
+        'p',
+        { className: 'callout' },
+        icon('heart', { size: 18 }),
+        el('span', {}, el('strong', { text: ' Personal touch: ' }), ideas.personalTouch),
+      ),
   ];
 }
 
@@ -198,7 +275,10 @@ export function renderDates({ nearby, weekday, advice }) {
           el(
             'li',
             { className: 'date-card' },
-            el('p', { className: 'hint', text: `Your date is a ${weekday}, with no major holidays or festivals within a week.` }),
+            el('p', {
+              className: 'hint',
+              text: `Your date is a ${weekday}, with no major holidays or festivals within a week.`,
+            }),
           ),
         ];
   return { cards, advice: advice.map((line) => el('li', { text: line })) };

@@ -89,7 +89,9 @@ server/
   config.js           environment parsing with safe defaults
   http/               routes (api.js) and error handling (errors.js)
   domain/             pure planning logic: catalog, budget, feasibility, timeline, checklist, planner, schemas
-  services/           NVIDIA client, prompts, AI orchestration with fallback
+  services/           NVIDIA clients, shared model fallback, prompts, AI orchestration, Calendarific, Ticketmaster
+  bootstrap.js        wires the real services together (used by server/index.js and api/index.js)
+api/                  Vercel entry point: runs the same Express app as a serverless function
 public/               accessible UI (plain HTML, CSS and ES modules, no build step)
 test/                 unit and API tests (node:test)
 testing/              shared test helpers
@@ -97,7 +99,7 @@ testing/              shared test helpers
 
 ## Run it
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 22.
 
 ```bash
 npm install
@@ -112,7 +114,9 @@ Without `NVIDIA_API_KEY` the app still runs, using the built-in ideas and with t
 | `npm start`    | Start the server       |
 | `npm run dev`  | Start with auto-reload |
 | `npm test`     | Run all tests          |
-| `npm run lint` | Lint with ESLint       |
+| `npm run lint` | Lint with ESLint |
+| `npm run coverage` | Run the tests and show coverage |
+| `npm run format` / `npm run format:check` | Format with Prettier / check formatting |
 
 ### Configuration (`.env`)
 
@@ -126,7 +130,8 @@ Without `NVIDIA_API_KEY` the app still runs, using the built-in ideas and with t
 | `TICKETMASTER_API_KEY`                                                                                     | none                                                                                 | Enables live event search in Explore ([developer.ticketmaster.com](https://developer.ticketmaster.com))                                                                                                                                                            |
 | `HOLIDAY_FEED_URL`                                                                                         | Google public India holidays                                                         | iCalendar feed; set empty to disable                                                                                                                                                                                                                               |
 | `NVIDIA_BASE_URL`                                                                                          | `https://integrate.api.nvidia.com/v1`                                                | API endpoint                                                                                                                                                                                                                                                       |
-| `LLM_TIMEOUT_MS`                                                                                           | `20000`                                                                              | Per-request AI timeout                                                                                                                                                                                                                                             |
+| `LLM_TIMEOUT_MS` / `LLM_TOTAL_TIMEOUT_MS` | `20000` / `40000` | AI timeout per model / for all models together |
+| `IMAGE_TIMEOUT_MS` / `IMAGE_TOTAL_TIMEOUT_MS` | `30000` / `50000` | Card art timeout per model / for all models together |
 | `PORT`                                                                                                     | `3000`                                                                               | HTTP port                                                                                                                                                                                                                                                          |
 | `APP_TIMEZONE`                                                                                             | `Asia/Kolkata`                                                                       | Decides what "today" is for countdowns                                                                                                                                                                                                                             |
 | `TRUST_PROXY`                                                                                              | `0`                                                                                  | Set to `1` behind one proxy (Render, Heroku) so rate limits see real IPs                                                                                                                                                                                           |
@@ -136,11 +141,18 @@ Without `NVIDIA_API_KEY` the app still runs, using the built-in ideas and with t
 
 The repo is ready for Vercel with no build step: `public/` is served as static files, and `api/index.js` runs the same Express app as a serverless function (`vercel.json` rewrites `/api/*` to it and repeats the security headers for static files).
 
-1. Import the GitHub repo in Vercel. Framework preset: **Other**. Leave build and output settings empty.
+1. Import the GitHub repo in Vercel. Framework preset: **Other**. Leave the build and output settings as they are: `vercel.json` already says there is nothing to build and that static files live in `public/`.
 2. In **Settings, Environment Variables**, add `NVIDIA_API_KEY`, `CALENDARIFIC_API_KEY` and `TICKETMASTER_API_KEY` (optional: `NVIDIA_MODEL`, `NVIDIA_IMAGE_MODEL`, `APP_TIMEZONE`). Never commit them.
 3. Redeploy, then open `/api/health`. It should return `{"status":"ok", ...}` with `true` for each configured feature.
 
 Notes for serverless hosting: rate limits and caches live in memory, so they apply per running instance. Card art can take a few seconds, so the function is allowed up to 60 s.
+
+## Code quality
+
+- **Small, single-purpose functions.** ESLint fails the build if a function in `server/`, `api/` or `public/` is longer than 80 lines (comments and blank lines excluded), has more than 5 parameters, nests ternaries, or skips braces.
+- **One formatter.** Prettier (`.prettierrc.json`) plus `.editorconfig` and `.gitattributes` keep style and line endings identical on every machine; `npm run format:check` verifies it.
+- **Shared code, not copies.** Both AI clients use one model-fallback helper; browser requests go through one `request()` function.
+- **Pure logic is separate from I/O.** Budget, timeline, checklist and date rules are pure functions with injected dates, so they are easy to test.
 
 ## Security
 
@@ -153,7 +165,7 @@ Notes for serverless hosting: rate limits and caches live in memory, so they app
 - **External links and images**: event links must be `https`, open with `rel="noopener noreferrer"`, and images are accepted only from Ticketmaster's CDN (the only extra host in the content-security policy).
 - **Third-party data**: the holiday feed is fetched from one fixed URL, size-capped, parsed strictly, stripped of control characters and rendered as text only.
 - **Safe defaults for every response**: `Permissions-Policy` switches off camera, microphone, location and payments; API responses are `no-store`; POST requests must be `application/json` (415 otherwise), so another site's HTML form cannot reach the API; static files revalidate on every load.
-- **Resilient AI**: model names are a list, and a retired model (HTTP 404/410) is skipped automatically, so one stale setting cannot switch the AI off.
+- **Resilient AI**: model names are a list. A model that is retired (404/410), slow, overloaded or returns nothing is skipped in favour of the next one, inside a total time budget (`LLM_TOTAL_TIMEOUT_MS`, `IMAGE_TOTAL_TIMEOUT_MS`) that stays under the 60 s function limit on Vercel. Bad credentials and safety-filter refusals are final, since every model would answer the same.
 - **Abuse limits**: per-IP rate limits, tighter on AI endpoints, plus timeouts and a single retry on the upstream call.
 - **Hardening**: Helmet headers, `X-Powered-By` removed, no CORS (same-origin only), no secrets in git (`.env` is ignored), a CI audit step, and no personal data is stored or logged on the server.
 
@@ -163,7 +175,7 @@ The step flows use the WAI-ARIA tabs pattern (arrow keys, Home and End move betw
 
 ## Testing
 
-`npm test` runs 135+ tests with Node's built-in runner:
+`npm test` runs the whole suite with Node's built-in runner (`npm run coverage` adds a coverage report; line coverage is about 99%):
 
 - **Domain**: budget always sums exactly, priority and home-venue rules, timeline compression and ordering, feasibility thresholds, checklist adapting to venue and diet.
 - **Validation**: ranges, past and invalid dates, unknown keys, control characters.

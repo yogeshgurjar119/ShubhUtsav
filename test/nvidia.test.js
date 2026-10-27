@@ -3,7 +3,13 @@ import { describe, it } from 'node:test';
 import { LlmError, createNvidiaClient } from '../server/services/nvidia.js';
 
 const SECRET = 'nvapi-super-secret-key';
-const options = { apiKey: SECRET, model: 'test-model', baseUrl: 'https://llm.test/v1', timeoutMs: 1000, retryDelayMs: 1 };
+const options = {
+  apiKey: SECRET,
+  model: 'test-model',
+  baseUrl: 'https://llm.test/v1',
+  timeoutMs: 1000,
+  retryDelayMs: 1,
+};
 const ok = (content) => new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
 const call = (client) => client.complete({ system: 's', messages: [{ role: 'user', content: 'hi' }] });
 
@@ -120,14 +126,23 @@ describe('NVIDIA client model fallback', () => {
       ...options,
       models: ['missing/model', 'ok/model'],
       logger: { warn() {} },
-      fetchImpl: async (url, init) => (JSON.parse(init.body).model === 'missing/model' ? new Response('', { status: 404 }) : ok('hi')),
+      fetchImpl: async (url, init) =>
+        JSON.parse(init.body).model === 'missing/model' ? new Response('', { status: 404 }) : ok('hi'),
     });
     assert.equal(await call(client), 'hi');
   });
 
   it('fails clearly when every model has been retired', async () => {
-    const client = createNvidiaClient({ ...options, models: ['a/one', 'b/two'], logger: { warn() {} }, fetchImpl: async () => gone() });
-    await assert.rejects(call(client), (e) => e instanceof LlmError && e.status === 410 && /NVIDIA_MODEL/.test(e.message));
+    const client = createNvidiaClient({
+      ...options,
+      models: ['a/one', 'b/two'],
+      logger: { warn() {} },
+      fetchImpl: async () => gone(),
+    });
+    await assert.rejects(
+      call(client),
+      (e) => e instanceof LlmError && e.status === 410 && /NVIDIA_MODEL/.test(e.message),
+    );
   });
 
   it('does not switch models for other errors such as 401', async () => {

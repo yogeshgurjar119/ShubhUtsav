@@ -7,7 +7,14 @@ const PAGE_SIZE = 24;
  * Ticketmaster Discovery API: live events by country, city, keyword and date range
  * (https://developer.ticketmaster.com). Results are cached for ten minutes per query.
  */
-export function createTicketmasterService({ apiKey, baseUrl, timeoutMs = 10000, ttlMs = 10 * 60 * 1000, fetchImpl = globalThis.fetch, now }) {
+export function createTicketmasterService({
+  apiKey,
+  baseUrl,
+  timeoutMs = 10000,
+  ttlMs = 10 * 60 * 1000,
+  fetchImpl = globalThis.fetch,
+  now,
+}) {
   const cache = createCache({ ttlMs, maxEntries: 200, now });
 
   return {

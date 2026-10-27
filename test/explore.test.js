@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
-import { makeEventsQuerySchema, makeFestivalQuerySchema, normalizeEvents, normalizeHolidays } from '../server/domain/explore.js';
+import {
+  makeEventsQuerySchema,
+  makeFestivalQuerySchema,
+  normalizeEvents,
+  normalizeHolidays,
+} from '../server/domain/explore.js';
 import { createCalendarificService } from '../server/services/calendarific.js';
 import { createTicketmasterService } from '../server/services/ticketmaster.js';
 import { UpstreamError, createCache } from '../server/services/upstream.js';
@@ -14,7 +19,12 @@ const holidayPayload = {
   response: {
     holidays: [
       { name: 'Diwali', description: 'Festival of lights', date: { iso: '2027-10-29' }, type: ['National holiday'] },
-      { name: 'Holi', description: 'Festival of colours', date: { iso: '2027-03-22' }, type: ['National holiday', 'Hinduism'] },
+      {
+        name: 'Holi',
+        description: 'Festival of colours',
+        date: { iso: '2027-03-22' },
+        type: ['National holiday', 'Hinduism'],
+      },
       { name: 'Broken', date: { iso: 'not-a-date' }, type: [] },
       { description: 'no name', date: { iso: '2027-01-01' } },
     ],
@@ -38,7 +48,12 @@ const eventPayload = {
         ],
         _embedded: { venues: [{ name: 'Big Arena', city: { name: 'Austin' }, country: { countryCode: 'US' } }] },
       },
-      { name: 'Bad link', url: 'javascript:alert(1)', dates: { start: { localDate: '2026-11-21' } }, images: [{ url: 'http://s1.ticketm.net/a.jpg' }] },
+      {
+        name: 'Bad link',
+        url: 'javascript:alert(1)',
+        dates: { start: { localDate: '2026-11-21' } },
+        images: [{ url: 'http://s1.ticketm.net/a.jpg' }],
+      },
       { name: 'No date', dates: { start: {} } },
     ],
   },
@@ -47,14 +62,22 @@ const eventPayload = {
 describe('normalizeHolidays', () => {
   it('keeps valid entries, sorted by date, and drops broken ones', () => {
     const list = normalizeHolidays(holidayPayload);
-    assert.deepEqual(list.map((h) => [h.date, h.name]), [['2027-03-22', 'Holi'], ['2027-10-29', 'Diwali']]);
+    assert.deepEqual(
+      list.map((h) => [h.date, h.name]),
+      [
+        ['2027-03-22', 'Holi'],
+        ['2027-10-29', 'Diwali'],
+      ],
+    );
     assert.deepEqual(list[0].types, ['National holiday', 'Hinduism']);
   });
 
   it('returns an empty list for unexpected payloads and caps long text', () => {
     assert.deepEqual(normalizeHolidays(null), []);
     assert.deepEqual(normalizeHolidays({ response: { holidays: 'nope' } }), []);
-    const [h] = normalizeHolidays({ response: { holidays: [{ name: 'x'.repeat(500), description: 'y'.repeat(900), date: { iso: '2027-01-01' } }] } });
+    const [h] = normalizeHolidays({
+      response: { holidays: [{ name: 'x'.repeat(500), description: 'y'.repeat(900), date: { iso: '2027-01-01' } }] },
+    });
     assert.ok(h.name.length <= 100 && h.description.length <= 220);
   });
 });
@@ -89,11 +112,23 @@ describe('explore query schemas', () => {
 
   it('festivals: defaults to India and this year, and coerces numbers from the query string', () => {
     assert.deepEqual(festivals.parse({}), { country: 'IN', year: 2026 });
-    assert.deepEqual(festivals.parse({ country: 'US', year: '2027', month: '10' }), { country: 'US', year: 2027, month: 10 });
+    assert.deepEqual(festivals.parse({ country: 'US', year: '2027', month: '10' }), {
+      country: 'US',
+      year: 2027,
+      month: 10,
+    });
   });
 
   it('festivals: rejects unknown countries, odd years, bad months and extra keys', () => {
-    for (const bad of [{ country: 'XX' }, { country: 'in' }, { year: '1999' }, { year: '2100' }, { month: '13' }, { month: '0' }, { admin: '1' }]) {
+    for (const bad of [
+      { country: 'XX' },
+      { country: 'in' },
+      { year: '1999' },
+      { year: '2100' },
+      { month: '13' },
+      { month: '0' },
+      { admin: '1' },
+    ]) {
       assert.equal(festivals.safeParse(bad).success, false, JSON.stringify(bad));
     }
   });
@@ -113,7 +148,14 @@ describe('explore query schemas', () => {
   });
 
   it('events: rejects markup, operators and unknown values in free text', () => {
-    for (const bad of [{ city: '<script>' }, { keyword: 'a;b' }, { city: 'x'.repeat(61) }, { category: 'weapons' }, { country: 'ZZ' }, { page: '2' }]) {
+    for (const bad of [
+      { city: '<script>' },
+      { keyword: 'a;b' },
+      { city: 'x'.repeat(61) },
+      { category: 'weapons' },
+      { country: 'ZZ' },
+      { page: '2' },
+    ]) {
       assert.equal(events.safeParse({ country: 'US', ...bad }).success, false, JSON.stringify(bad));
     }
     assert.equal(events.safeParse({}).success, false); // country is required
@@ -135,7 +177,11 @@ describe('createCache', () => {
 
   it('does not cache failures and evicts the oldest entry beyond its limit', async () => {
     const cache = createCache({ ttlMs: 1000, maxEntries: 2 });
-    await assert.rejects(cache.getOrLoad('bad', async () => { throw new Error('x'); }));
+    await assert.rejects(
+      cache.getOrLoad('bad', async () => {
+        throw new Error('x');
+      }),
+    );
     assert.equal(await cache.getOrLoad('bad', async () => 'ok'), 'ok');
     await cache.getOrLoad('a', async () => 1);
     await cache.getOrLoad('b', async () => 2);
@@ -164,26 +210,43 @@ describe('Calendarific service', () => {
 
   it('turns failures into generic errors that never contain the key', async () => {
     const cases = [
-      async () => { throw new Error(`boom ${KEY}`); },
+      async () => {
+        throw new Error(`boom ${KEY}`);
+      },
       async () => json({}, 401),
       async () => json({ meta: { code: 429, error_detail: KEY } }),
       async () => new Response('not json'),
     ];
     for (const fetchImpl of cases) {
-      await assert.rejects(make(fetchImpl).getHolidays({ country: 'IN', year: 2027 }), (e) => e instanceof UpstreamError && !e.message.includes(KEY));
+      await assert.rejects(
+        make(fetchImpl).getHolidays({ country: 'IN', year: 2027 }),
+        (e) => e instanceof UpstreamError && !e.message.includes(KEY),
+      );
     }
   });
 
   it('is unavailable without a key and never calls out', async () => {
-    const service = createCalendarificService({ apiKey: '', baseUrl: 'https://cal.test', fetchImpl: async () => assert.fail('no call') });
+    const service = createCalendarificService({
+      apiKey: '',
+      baseUrl: 'https://cal.test',
+      fetchImpl: async () => assert.fail('no call'),
+    });
     assert.equal(service.available, false);
     await assert.rejects(service.getHolidays({ country: 'IN', year: 2027 }), UpstreamError);
   });
 });
 
 describe('Ticketmaster service', () => {
-  const query = { country: 'US', city: 'Austin', keyword: 'rock & roll', category: 'music', from: '2026-11-01', to: '2026-11-30' };
-  const make = (fetchImpl) => createTicketmasterService({ apiKey: KEY, baseUrl: 'https://tm.test/discovery/v2', fetchImpl });
+  const query = {
+    country: 'US',
+    city: 'Austin',
+    keyword: 'rock & roll',
+    category: 'music',
+    from: '2026-11-01',
+    to: '2026-11-30',
+  };
+  const make = (fetchImpl) =>
+    createTicketmasterService({ apiKey: KEY, baseUrl: 'https://tm.test/discovery/v2', fetchImpl });
 
   it('builds a safe, encoded query and caches identical searches', async () => {
     const urls = [];
@@ -209,8 +272,17 @@ describe('Ticketmaster service', () => {
   });
 
   it('maps failures to generic errors without the key', async () => {
-    for (const fetchImpl of [async () => json({}, 401), async () => json({}, 429), async () => { throw new Error(KEY); }]) {
-      await assert.rejects(make(fetchImpl).searchEvents(query), (e) => e instanceof UpstreamError && !e.message.includes(KEY));
+    for (const fetchImpl of [
+      async () => json({}, 401),
+      async () => json({}, 429),
+      async () => {
+        throw new Error(KEY);
+      },
+    ]) {
+      await assert.rejects(
+        make(fetchImpl).searchEvents(query),
+        (e) => e instanceof UpstreamError && !e.message.includes(KEY),
+      );
     }
   });
 });
@@ -234,17 +306,28 @@ describe('Explore API', () => {
     assert.equal(all.status, 200);
     assert.equal(all.json.holidays.length, 2);
     const march = await s.request('/api/explore/festivals?country=IN&year=2027&month=3');
-    assert.deepEqual(march.json.holidays.map((h) => h.name), ['Holi']);
+    assert.deepEqual(
+      march.json.holidays.map((h) => h.name),
+      ['Holi'],
+    );
     assert.deepEqual(calendarific.calls[0], { country: 'IN', year: 2027 });
   });
 
   it('searches events and returns the cards', async () => {
     const ticketmaster = fakeTicketmaster(events);
     const s = await boot({ ticketmaster });
-    const res = await s.request('/api/explore/events?country=US&city=Austin&category=music&from=2026-11-01&to=2026-11-30');
+    const res = await s.request(
+      '/api/explore/events?country=US&city=Austin&category=music&from=2026-11-01&to=2026-11-30',
+    );
     assert.equal(res.status, 200);
     assert.equal(res.json.events[0].name, 'Rock Night');
-    assert.deepEqual(ticketmaster.calls[0], { country: 'US', city: 'Austin', category: 'music', from: '2026-11-01', to: '2026-11-30' });
+    assert.deepEqual(ticketmaster.calls[0], {
+      country: 'US',
+      city: 'Austin',
+      category: 'music',
+      from: '2026-11-01',
+      to: '2026-11-30',
+    });
   });
 
   it('rejects bad queries before calling anything', async () => {
@@ -267,11 +350,17 @@ describe('Explore API', () => {
   });
 
   it('answers 503 when a key is missing and 502 when the provider fails, without leaking details', async () => {
-    const off = await boot({ calendarific: fakeCalendarific([], { available: false }), ticketmaster: fakeTicketmaster([], { available: false }) });
+    const off = await boot({
+      calendarific: fakeCalendarific([], { available: false }),
+      ticketmaster: fakeTicketmaster([], { available: false }),
+    });
     assert.equal((await off.request('/api/explore/festivals?country=IN')).status, 503);
     assert.equal((await off.request('/api/explore/events?country=US')).status, 503);
 
-    const broken = await boot({ calendarific: fakeCalendarific([], { fail: true }), ticketmaster: fakeTicketmaster([], { fail: true }) });
+    const broken = await boot({
+      calendarific: fakeCalendarific([], { fail: true }),
+      ticketmaster: fakeTicketmaster([], { fail: true }),
+    });
     for (const path of ['/api/explore/festivals?country=IN', '/api/explore/events?country=US']) {
       const res = await broken.request(path);
       assert.equal(res.status, 502);
@@ -295,7 +384,7 @@ describe('Explore API', () => {
     assert.deepEqual(codes, [200, 200, 429]);
   });
 
-  it('allows only Ticketmaster\'s image host (besides self and data:) in the content security policy', async () => {
+  it("allows only Ticketmaster's image host (besides self and data:) in the content security policy", async () => {
     const s = await boot();
     const csp = (await s.request('/')).headers.get('content-security-policy');
     assert.match(csp, /img-src 'self' data: https:\/\/\*\.ticketm\.net(;|$)/);

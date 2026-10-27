@@ -5,7 +5,9 @@ import { describe, it } from 'node:test';
 // Cheap guards for mistakes that only show up in a browser (a duplicate id once made a whole panel blank).
 const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
 const jsDir = new URL('../public/js/', import.meta.url);
-const scripts = readdirSync(jsDir).filter((f) => f.endsWith('.js')).map((f) => [f, readFileSync(new URL(f, jsDir), 'utf8')]);
+const scripts = readdirSync(jsDir)
+  .filter((f) => f.endsWith('.js'))
+  .map((f) => [f, readFileSync(new URL(f, jsDir), 'utf8')]);
 
 const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
 

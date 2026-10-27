@@ -6,7 +6,8 @@ import { cspHeaderValue } from '../server/http/csp.js';
 import { startServer } from '../testing/helpers.js';
 
 const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
-const headerOf = (name) => vercel.headers.flatMap((h) => h.headers).find((h) => h.key.toLowerCase() === name.toLowerCase())?.value;
+const headerOf = (name) =>
+  vercel.headers.flatMap((h) => h.headers).find((h) => h.key.toLowerCase() === name.toLowerCase())?.value;
 const normalise = (policy) => policy.replace(/;\s*/g, ';').trim();
 
 describe('Vercel deployment config', () => {
@@ -37,6 +38,26 @@ describe('Vercel deployment config', () => {
   });
 });
 
+describe('package.json for Vercel', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
+  it('has a build script (Vercel runs it) that succeeds without compiling anything', async () => {
+    assert.ok(pkg.scripts.build, 'Vercel fails with "Missing script: build" without it');
+    const { spawnSync } = await import('node:child_process');
+    const result = spawnSync(pkg.scripts.build, { shell: true, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  it('pins the Node major version so a new Node release cannot change the deployment', () => {
+    assert.match(pkg.engines.node, /^\d+\.x$/);
+  });
+
+  it('tells Vercel there is no build output other than public/', () => {
+    assert.equal(vercel.buildCommand, null);
+    assert.equal(vercel.outputDirectory, 'public');
+  });
+});
+
 describe('Vercel function entry (api/index.js)', () => {
   it('exports the Express app, which answers health checks through a plain Node server', async () => {
     const { default: handler } = await import('../api/index.js');
@@ -55,7 +76,11 @@ describe('Vercel function entry (api/index.js)', () => {
       assert.equal((await missing.json()).error.code, 'not_found');
 
       // validation is wired up too
-      const plan = await fetch(`${base}/api/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const plan = await fetch(`${base}/api/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
       assert.equal(plan.status, 400);
     } finally {
       await new Promise((resolve) => server.close(resolve));

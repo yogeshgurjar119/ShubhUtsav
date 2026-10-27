@@ -1,55 +1,20 @@
 import { byId } from './dom.js';
-import { formatINR, formatIndianWords, localToday } from './format.js';
+import { todayPlus } from './format.js';
+import { readForm, setupNotesCounter, setupPriorityLimit, setupTypeRules } from './wizardRules.js';
 
 const LAST_STEP = 3;
-const MAX_PRIORITIES = 3;
-const MAX_PRIVATE_GUESTS = 5000;
-const MAX_PUBLIC_GUESTS = 50_000;
+const DEFAULT_MONTHS_AHEAD = 6;
 
-// Sensible starting numbers per event type (only applied until the user edits the field).
-const PRESETS = {
-  wedding: { guests: 200, budget: 1_200_000 },
-  birthday: { guests: 40, budget: 60_000 },
-  community: { guests: 300, budget: 150_000 },
-  public: { guests: 5000, budget: 2_500_000 },
-};
-
-/**
- * The three-step setup form. Each step is validated before moving on; Enter moves forward
- * until the last step. `onSubmit(payload)` receives the exact shape the API expects.
- */
-export function setupWizard({ form, onSubmit }) {
-  const steps = [...form.querySelectorAll('.form-step')];
+/** The step-by-step part of the form: which step is shown, validation, and the Back/Next buttons. */
+function createSteps(form) {
+  const sections = [...form.querySelectorAll('.form-step')];
   const stepper = byId('form-stepper');
-  const backButton = byId('back-btn');
-  const nextButton = byId('next-btn');
-  const submitButton = byId('submit-btn');
-  const guests = byId('guests');
-  const budget = byId('budget');
-  const venue = byId('venueType');
-  const touched = new Set();
+  const buttons = { back: byId('back-btn'), next: byId('next-btn'), submit: byId('submit-btn') };
   let current = 1;
 
-  /* ---------- reading the form ---------- */
-  function read() {
-    const data = new FormData(form);
-    return {
-      eventType: data.get('eventType'),
-      guests: Number(data.get('guests')),
-      budget: Number(data.get('budget')),
-      eventDate: data.get('eventDate'),
-      cityTier: data.get('cityTier'),
-      venueType: data.get('venueType'),
-      dietary: data.get('dietary'),
-      priorities: data.getAll('priorities'),
-      notes: String(data.get('notes') ?? ''),
-    };
-  }
-
-  /* ---------- steps ---------- */
   function show(step, { focus = false } = {}) {
     current = step;
-    for (const section of steps) section.hidden = Number(section.dataset.step) !== step;
+    for (const section of sections) section.hidden = Number(section.dataset.step) !== step;
     for (const item of stepper.children) {
       const n = Number(item.dataset.step);
       item.classList.toggle('current', n === step);
@@ -57,15 +22,15 @@ export function setupWizard({ form, onSubmit }) {
       if (n === step) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
     }
-    backButton.hidden = step === 1;
-    nextButton.hidden = step === LAST_STEP;
-    submitButton.hidden = step !== LAST_STEP;
-    if (focus) steps[step - 1].querySelector('.step-title')?.focus();
+    buttons.back.hidden = step === 1;
+    buttons.next.hidden = step === LAST_STEP;
+    buttons.submit.hidden = step !== LAST_STEP;
+    if (focus) sections[step - 1].querySelector('.step-title')?.focus();
   }
 
-  function validateStep(step) {
-    const section = steps[step - 1];
-    for (const field of section.querySelectorAll('input, select, textarea')) {
+  /** True when every field in the step is valid; otherwise shows the browser's message on the first bad one. */
+  function validate(step) {
+    for (const field of sections[step - 1].querySelectorAll('input, select, textarea')) {
       if (!field.checkValidity()) {
         field.reportValidity();
         return false;
@@ -74,110 +39,80 @@ export function setupWizard({ form, onSubmit }) {
     return true;
   }
 
-  function go(step) {
-    show(step, { focus: true });
+  /** Index of the first step with an invalid field (shown to the person), or 0 when all are fine. */
+  function firstInvalidStep() {
+    for (let step = 1; step <= LAST_STEP; step += 1) {
+      if (!validate(step)) return step;
+    }
+    return 0;
   }
 
-  nextButton.addEventListener('click', () => {
-    if (validateStep(current)) go(current + 1);
-  });
-  backButton.addEventListener('click', () => go(current - 1));
+  // Stay inside the real steps even if a button fires from the wrong place (e.g. "next" on the last step).
+  const go = (step) => show(Math.max(1, Math.min(LAST_STEP, step)), { focus: true });
+
+  function next() {
+    if (validate(current)) go(current + 1);
+  }
+  buttons.next.addEventListener('click', next);
+  buttons.back.addEventListener('click', () => go(current - 1));
+
+  return { show, go, validate, firstInvalidStep, next, isLast: () => current >= LAST_STEP };
+}
+
+/**
+ * The three-step setup form. Each step is validated before moving on; Enter moves forward
+ * until the last step. `onSubmit(payload)` receives the exact shape the API expects.
+ */
+export function setupWizard({ form, onSubmit }) {
+  const steps = createSteps(form);
+  const typeRules = setupTypeRules(form);
+  const limitPriorities = setupPriorityLimit(form);
+  const updateNotesCount = setupNotesCounter();
+  const dateInput = byId('eventDate');
+
+  /** Sets the earliest date and a sensible default (using the server's date once it is known). */
+  function refreshDates() {
+    dateInput.min = todayPlus(0);
+    if (!dateInput.value || dateInput.value < dateInput.min) dateInput.value = todayPlus(DEFAULT_MONTHS_AHEAD);
+  }
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    if (current < LAST_STEP) {
-      if (validateStep(current)) go(current + 1);
+    if (!steps.isLast()) {
+      steps.next();
       return;
     }
-    for (let step = 1; step <= LAST_STEP; step += 1) {
-      if (!validateStep(step)) {
-        show(step);
-        validateStep(step);
-        return;
-      }
-    }
-    onSubmit(read());
-  });
-
-  /* ---------- event-type rules ---------- */
-  function applyTypeRules() {
-    const type = form.elements.eventType.value;
-    const isPublic = type === 'public';
-
-    guests.max = String(isPublic ? MAX_PUBLIC_GUESTS : MAX_PRIVATE_GUESTS);
-    byId('guests-label').textContent = isPublic ? 'Expected attendance' : 'Number of guests';
-    byId('guests-hint').textContent = isPublic ? 'Up to 50,000 people.' : 'Up to 5,000 guests.';
-
-    // A public event cannot be held at home.
-    const home = venue.querySelector('option[value="home"]');
-    home.disabled = isPublic;
-    if (isPublic && venue.value === 'home') venue.value = 'hall';
-
-    const preset = PRESETS[type];
-    if (!touched.has('guests')) guests.value = preset.guests;
-    if (!touched.has('budget')) budget.value = preset.budget;
-    updateBudgetHint();
-  }
-
-  function updateBudgetHint() {
-    const amount = Number(budget.value);
-    const people = Number(guests.value);
-    const hint = byId('budget-hint');
-    if (!Number.isFinite(amount) || amount <= 0) {
-      hint.textContent = '';
+    const bad = steps.firstInvalidStep();
+    if (bad === 0) {
+      onSubmit(readForm(form));
       return;
     }
-    const perGuest = people > 0 ? ` · about ${formatINR(amount / people)} per guest` : '';
-    hint.textContent = `${formatIndianWords(amount)}${perGuest}`;
-  }
-
-  for (const radio of form.querySelectorAll('input[name="eventType"]')) radio.addEventListener('change', applyTypeRules);
-  guests.addEventListener('input', () => {
-    touched.add('guests');
-    updateBudgetHint();
+    steps.show(bad); // the browser can only show its message on a visible field
+    steps.validate(bad);
   });
-  budget.addEventListener('input', () => {
-    touched.add('budget');
-    updateBudgetHint();
-  });
-
-  /* ---------- priorities and notes ---------- */
-  function limitPriorities() {
-    const boxes = [...form.querySelectorAll('input[name="priorities"]')];
-    const selected = boxes.filter((b) => b.checked).length;
-    for (const box of boxes) box.disabled = !box.checked && selected >= MAX_PRIORITIES;
-  }
-  byId('priorities').addEventListener('change', limitPriorities);
-
-  const notes = byId('notes');
-  const updateNotesCount = () => {
-    byId('notes-count').textContent = `${notes.value.length} / ${notes.maxLength}`;
-  };
-  notes.addEventListener('input', updateNotesCount);
-
-  /* ---------- start-up ---------- */
-  const dateInput = byId('eventDate');
-  dateInput.min = localToday();
-  dateInput.value = localToday(6);
-  applyTypeRules();
-  updateNotesCount();
-  show(1);
 
   /** Clears everything back to the starting values (the "New plan" button). */
   function reset() {
     form.reset();
-    touched.clear();
-    dateInput.value = localToday(6);
-    applyTypeRules();
+    dateInput.value = todayPlus(DEFAULT_MONTHS_AHEAD);
+    typeRules.reset();
     limitPriorities();
     updateNotesCount();
-    show(1);
+    steps.show(1);
   }
 
-  /** Sets the event date (used by "Plan an event on this date" in Explore). */
-  function setDate(iso) {
-    dateInput.value = iso;
-  }
+  refreshDates();
+  typeRules.apply();
+  updateNotesCount();
+  steps.show(1);
 
-  return { go: (step) => show(step, { focus: true }), reset, setDate };
+  return {
+    go: steps.go,
+    reset,
+    refreshDates,
+    /** Sets the event date (used by "Plan an event on this date" in Explore). */
+    setDate: (iso) => {
+      dateInput.value = iso;
+    },
+  };
 }

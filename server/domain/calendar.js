@@ -59,7 +59,10 @@ export function analyzeDate({ eventDate, events, windowDays = 7 }) {
   const nearby = events
     .map((e) => ({ ...e, offset: diffDays(eventDate, e.date) }))
     .filter((e) => Math.abs(e.offset) <= windowDays)
-    .sort((a, b) => Math.abs(a.offset) - Math.abs(b.offset) || (a.kind === 'public' ? -1 : 1) - (b.kind === 'public' ? -1 : 1))
+    .sort(
+      (a, b) =>
+        Math.abs(a.offset) - Math.abs(b.offset) || (a.kind === 'public' ? -1 : 1) - (b.kind === 'public' ? -1 : 1),
+    )
     .slice(0, MAX_NEARBY);
 
   const advice = [];

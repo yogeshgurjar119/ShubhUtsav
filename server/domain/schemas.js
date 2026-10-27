@@ -34,10 +34,18 @@ export function makeEventInputSchema(today) {
     })
     .superRefine((input, ctx) => {
       if (input.eventType !== 'public' && input.guests > MAX_PRIVATE_GUESTS) {
-        ctx.addIssue({ code: 'custom', path: ['guests'], message: `Up to ${MAX_PRIVATE_GUESTS} guests for this event type` });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['guests'],
+          message: `Up to ${MAX_PRIVATE_GUESTS} guests for this event type`,
+        });
       }
       if (input.eventType === 'public' && input.venueType === 'home') {
-        ctx.addIssue({ code: 'custom', path: ['venueType'], message: 'A public event needs a hall or an outdoor ground' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['venueType'],
+          message: 'A public event needs a hall or an outdoor ground',
+        });
       }
       if (!isValidIsoDate(input.eventDate)) return;
       const days = diffDays(today, input.eventDate);
@@ -74,7 +82,10 @@ export const cardArtRequestSchema = z.strictObject({
 /** Shape required from the model for the ideas section. Every string is length-capped. */
 const text = (max) => z.string().transform(stripControls).pipe(z.string().min(1).max(max));
 export const aiIdeasSchema = z.object({
-  themes: z.array(z.object({ title: text(80), description: text(240) })).min(1).max(5),
+  themes: z
+    .array(z.object({ title: text(80), description: text(240) }))
+    .min(1)
+    .max(5),
   menu: z.array(text(120)).min(1).max(8),
   entertainment: z.array(text(120)).min(1).max(6),
   budgetTips: z.array(text(200)).min(1).max(6),

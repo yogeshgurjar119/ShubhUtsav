@@ -7,7 +7,12 @@ const schema = makeEventInputSchema(TODAY);
 const fails = (input, field) => {
   const result = schema.safeParse(input);
   assert.equal(result.success, false);
-  if (field) assert.ok(result.error.issues.some((i) => i.path.join('.') === field), `expected an issue on ${field}`);
+  if (field) {
+    assert.ok(
+      result.error.issues.some((i) => i.path.join('.') === field),
+      `expected an issue on ${field}`,
+    );
+  }
 };
 
 describe('event input schema', () => {
@@ -72,7 +77,10 @@ describe('AI ideas schema', () => {
 
 describe('public event rules', () => {
   it('allows large crowds only for public events', () => {
-    assert.equal(schema.safeParse(validEvent({ eventType: 'public', venueType: 'outdoor', guests: 20_000 })).success, true);
+    assert.equal(
+      schema.safeParse(validEvent({ eventType: 'public', venueType: 'outdoor', guests: 20_000 })).success,
+      true,
+    );
     fails(validEvent({ eventType: 'wedding', guests: 5001 }), 'guests');
     fails(validEvent({ eventType: 'public', venueType: 'outdoor', guests: 50_001 }), 'guests');
   });

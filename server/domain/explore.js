@@ -33,7 +33,8 @@ export const EVENT_CATEGORIES = Object.freeze({
 const MAX_EVENT_RANGE_DAYS = 120;
 const MAX_YEARS_AHEAD = 3;
 const PLACE = /^[\p{L}\p{M}\p{N} .'&-]+$/u;
-const place = (label) => z.string().trim().min(1).max(60).regex(PLACE, `${label} can only contain letters, numbers and spaces`);
+const place = (label) =>
+  z.string().trim().min(1).max(60).regex(PLACE, `${label} can only contain letters, numbers and spaces`);
 const country = z.enum(Object.keys(COUNTRIES));
 
 /** Query for the festivals and holidays list (all values arrive as strings). */
@@ -41,7 +42,12 @@ export function makeFestivalQuerySchema(today) {
   const thisYear = Number(today.slice(0, 4));
   return z.strictObject({
     country: country.default('IN'),
-    year: z.coerce.number().int().min(thisYear).max(thisYear + MAX_YEARS_AHEAD).default(thisYear),
+    year: z.coerce
+      .number()
+      .int()
+      .min(thisYear)
+      .max(thisYear + MAX_YEARS_AHEAD)
+      .default(thisYear),
     month: z.coerce.number().int().min(1).max(12).optional(),
   });
 }
@@ -60,10 +66,17 @@ export function makeEventsQuerySchema(today) {
     .transform((q) => ({ ...q, to: q.to ?? addDays(q.from, 30) }))
     .superRefine((q, ctx) => {
       if (!isValidIsoDate(q.from) || !isValidIsoDate(q.to)) return;
-      if (diffDays(today, q.from) < 0) ctx.addIssue({ code: 'custom', path: ['from'], message: 'Start date cannot be in the past' });
-      if (diffDays(q.from, q.to) < 0) ctx.addIssue({ code: 'custom', path: ['to'], message: 'End date must be on or after the start date' });
-      else if (diffDays(q.from, q.to) > MAX_EVENT_RANGE_DAYS) {
-        ctx.addIssue({ code: 'custom', path: ['to'], message: `Search at most ${MAX_EVENT_RANGE_DAYS} days at a time` });
+      if (diffDays(today, q.from) < 0) {
+        ctx.addIssue({ code: 'custom', path: ['from'], message: 'Start date cannot be in the past' });
+      }
+      if (diffDays(q.from, q.to) < 0) {
+        ctx.addIssue({ code: 'custom', path: ['to'], message: 'End date must be on or after the start date' });
+      } else if (diffDays(q.from, q.to) > MAX_EVENT_RANGE_DAYS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['to'],
+          message: `Search at most ${MAX_EVENT_RANGE_DAYS} days at a time`,
+        });
       }
     });
 }
@@ -72,7 +85,8 @@ export function makeEventsQuerySchema(today) {
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
-const str = (value, max) => (typeof value === 'string' ? value.replace(CONTROL_CHARS, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '');
+const str = (value, max) =>
+  typeof value === 'string' ? value.replace(CONTROL_CHARS, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '';
 
 /** Calendarific response -> `[{ date, name, description, types }]` sorted by date. */
 export function normalizeHolidays(payload) {
@@ -83,7 +97,10 @@ export function normalizeHolidays(payload) {
     const date = str(item?.date?.iso, 25).slice(0, 10);
     const name = str(item?.name, 100);
     if (!name || !isValidIsoDate(date)) continue;
-    const types = (Array.isArray(item.type) ? item.type : [item.primary_type]).map((t) => str(t, 40)).filter(Boolean).slice(0, 3);
+    const types = (Array.isArray(item.type) ? item.type : [item.primary_type])
+      .map((t) => str(t, 40))
+      .filter(Boolean)
+      .slice(0, 3);
     out.push({ date, name, description: str(item.description, 220), types });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));

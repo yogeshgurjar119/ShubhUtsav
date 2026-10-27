@@ -6,7 +6,12 @@ import { createNvidiaImageClient, detectMime } from '../server/services/nvidiaIm
 import { TINY_PNG } from '../testing/helpers.js';
 
 const SECRET = 'nvapi-image-secret';
-const options = { apiKey: SECRET, model: 'black-forest-labs/flux.1-schnell', baseUrl: 'https://img.test/v1/genai', timeoutMs: 1000 };
+const options = {
+  apiKey: SECRET,
+  model: 'black-forest-labs/flux.1-schnell',
+  baseUrl: 'https://img.test/v1/genai',
+  timeoutMs: 1000,
+};
 const reply = (payload, status = 200) => new Response(JSON.stringify(payload), { status });
 const JPEG_B64 = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1]).toString('base64');
 const generate = (client) => client.generate({ prompt: 'a card' });
@@ -43,12 +48,19 @@ describe('NVIDIA image client', () => {
   });
 
   it('also understands the OpenAI-style response shape', async () => {
-    const client = createNvidiaImageClient({ ...options, fetchImpl: async () => reply({ data: [{ b64_json: TINY_PNG }] }) });
+    const client = createNvidiaImageClient({
+      ...options,
+      fetchImpl: async () => reply({ data: [{ b64_json: TINY_PNG }] }),
+    });
     assert.equal((await generate(client)).mime, 'image/png');
   });
 
   it('is unavailable and makes no call without a key', async () => {
-    const client = createNvidiaImageClient({ ...options, apiKey: '', fetchImpl: async () => assert.fail('must not fetch') });
+    const client = createNvidiaImageClient({
+      ...options,
+      apiKey: '',
+      fetchImpl: async () => assert.fail('must not fetch'),
+    });
     assert.equal(client.available, false);
     await assert.rejects(generate(client), LlmError);
   });
@@ -101,7 +113,15 @@ describe('card art prompt', () => {
 describe('NVIDIA image client model fallback', () => {
   const okResponse = () => reply({ artifacts: [{ base64: TINY_PNG, finishReason: 'SUCCESS' }] });
   const make = (fetchImpl, extra = {}) =>
-    createNvidiaImageClient({ ...options, model: undefined, models: ['slow/model', 'fast/model'], timeoutMs: 40, logger: { warn() {} }, fetchImpl, ...extra });
+    createNvidiaImageClient({
+      ...options,
+      model: undefined,
+      models: ['slow/model', 'fast/model'],
+      timeoutMs: 40,
+      logger: { warn() {} },
+      fetchImpl,
+      ...extra,
+    });
 
   it('moves on when a model hangs and remembers the one that works', async () => {
     const tried = [];
@@ -110,7 +130,10 @@ describe('NVIDIA image client model fallback', () => {
       if (url.endsWith('slow/model')) {
         return new Promise((resolve, reject) => {
           const keepAlive = setTimeout(resolve, 5000); // AbortSignal.timeout timers are unref'd
-          init.signal.addEventListener('abort', () => { clearTimeout(keepAlive); reject(init.signal.reason); });
+          init.signal.addEventListener('abort', () => {
+            clearTimeout(keepAlive);
+            reject(init.signal.reason);
+          });
         });
       }
       return Promise.resolve(okResponse());
@@ -144,7 +167,11 @@ describe('NVIDIA image client model fallback', () => {
 
   it('asks the dev model for more steps than the fast models', async () => {
     let body;
-    const client = createNvidiaImageClient({ ...options, model: 'black-forest-labs/flux.1-dev', fetchImpl: async (url, init) => ((body = JSON.parse(init.body)), okResponse()) });
+    const client = createNvidiaImageClient({
+      ...options,
+      model: 'black-forest-labs/flux.1-dev',
+      fetchImpl: async (url, init) => ((body = JSON.parse(init.body)), okResponse()),
+    });
     await generate(client);
     assert.deepEqual([body.steps, body.cfg_scale], [28, 3.5]);
   });

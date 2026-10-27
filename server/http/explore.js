@@ -30,7 +30,9 @@ export function createExploreRouter({ calendarific, ticketmaster, clock, logger,
     '/festivals',
     asyncHandler(async (req, res) => {
       const query = parseOrThrow(makeFestivalQuerySchema(clock()), req.query);
-      if (!calendarific.available) throw new HttpError(503, 'explore_unavailable', 'Festival data is not set up on this server');
+      if (!calendarific.available) {
+        throw new HttpError(503, 'explore_unavailable', 'Festival data is not set up on this server');
+      }
 
       const all = await upstream(() => calendarific.getHolidays(query), logger, 'Festival data');
       const holidays = query.month ? all.filter((h) => Number(h.date.slice(5, 7)) === query.month) : all;
@@ -42,7 +44,9 @@ export function createExploreRouter({ calendarific, ticketmaster, clock, logger,
     '/events',
     asyncHandler(async (req, res) => {
       const query = parseOrThrow(makeEventsQuerySchema(clock()), req.query);
-      if (!ticketmaster.available) throw new HttpError(503, 'explore_unavailable', 'Event listings are not set up on this server');
+      if (!ticketmaster.available) {
+        throw new HttpError(503, 'explore_unavailable', 'Event listings are not set up on this server');
+      }
 
       const events = await upstream(() => ticketmaster.searchEvents(query), logger, 'Event listings');
       res.json({ country: query.country, from: query.from, to: query.to, events });

@@ -18,13 +18,31 @@ export function daysLabel(days) {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** Local calendar date as YYYY-MM-DD, optionally some months ahead (used for the date input). */
-export function localToday(monthsAhead = 0) {
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+let serverToday = null;
+
+/** Remembers the server's date. It counts in the server's timezone, which can differ from the browser's. */
+export function setServerToday(iso) {
+  if (ISO_DATE.test(iso ?? '')) serverToday = iso;
+}
+
+function browserToday() {
   const d = new Date();
-  d.setMonth(d.getMonth() + monthsAhead);
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+
+/** Adds calendar months to YYYY-MM-DD, keeping the day (or the month's last day when it is shorter). */
+export function addMonths(iso, months) {
+  const [year, month, day] = iso.split('-').map(Number);
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
+/** Today plus some months as YYYY-MM-DD, using the server's date once it is known. */
+export const todayPlus = (months = 0) => addMonths(serverToday ?? browserToday(), months);
 
 /** 800000 -> "₹8 lakh", 25000000 -> "₹2.5 crore" (how Indians usually say amounts). */
 export function formatIndianWords(amount) {
